@@ -191,7 +191,7 @@ class ScanFileUtil {
     /**
      * 扫描监视回调
      */
-    var mScanningCheckQueue: Deferred<Boolean>? = null
+  private  var mScanningCheckQueue: Deferred<Boolean>? = null
 
     /**
      * 等待完成 在协程中执行
@@ -319,7 +319,7 @@ class ScanFileUtil {
         /**
          * 隐藏文件 true扫描 false不扫描
          */
-        fun scanHiddenFiles() {
+        fun notScanHiddenFiles() {
             isHiddenFiles = true
         }
 
@@ -342,7 +342,8 @@ class ScanFileUtil {
          */
         fun scanLogFiles() {
             mFilseFilterSet.add("log")
-            mFilseFilterSet.add(".qlog")
+            mFilseFilterSet.add("qlog")
+            mFilseFilterSet.add("temp")
         }
 
         /**
@@ -432,7 +433,7 @@ class ScanFileUtil {
                 override fun accept(dir: File, name: String): Boolean {
                     //隐藏文件扫描规则
                     if (isHiddenFiles && dir.isHidden) {
-                        return true
+                        return false
                     }
 
                     //只扫描文件夹
