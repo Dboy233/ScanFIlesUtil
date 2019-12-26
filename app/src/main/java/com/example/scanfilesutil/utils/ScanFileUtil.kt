@@ -1,7 +1,6 @@
 package com.example.scanfilesutil.utils
 
 import android.os.Environment
-import android.util.Log
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FilenameFilter
@@ -27,16 +26,18 @@ class ScanFileUtil {
      * 是否停止扫描
      */
     private var isStop = true
-
-
     /**
      * 要扫描的根路径
      */
     private val mRootPath: String
     /**
-     * 规律规则
+     * 扫描到文件回调规则
      */
-    private var mFilter: FilenameFilter? = null
+    private var mCallBackFilter: FilenameFilter? = null
+    /**
+     * 扫描时的过滤规则
+     */
+    private var mScanFilter: FilenameFilter? = null
     /**
      * 协程列队
      */
@@ -46,6 +47,14 @@ class ScanFileUtil {
      */
     private var mCompleteCallBack: (() -> Unit)? = null
 
+    /**
+     * 扫描层级
+     */
+    private var mScanLevel = -1L
+    /**
+     * 记录扫描层级
+     */
+    private var mScanLevelCont = -1L
 
     constructor(rootPath: String) {
         this.mRootPath = rootPath
@@ -66,13 +75,29 @@ class ScanFileUtil {
     }
 
     /**
+     * 设置扫描层级数
+     */
+    fun setScanLevel(level: Long) {
+        mScanLevel = level
+    }
+
+    /**
+     * 停止
+     */
+    fun stop() {
+        isStop = true
+        mQueue.clear()
+    }
+
+
+    /**
      * 开始异步扫描文件
      */
     fun startAsyncScan(callback: (file: File) -> Unit) {
         if (!isStop) {
-            Log.d("Scan", "已经在扫描了")
             return
         }
+        mScanLevelCont = -1
         isStop = false
         val file = File(mRootPath)
         if (!file.exists()) {
@@ -84,17 +109,18 @@ class ScanFileUtil {
         checkQueue()
     }
 
-    fun stop() {
-        isStop = true
-        mQueue.clear()
-    }
-
     /**
      * 异步扫描文件 递归调用
      * @param dirOrFile 要扫描的文件 或 文件夹
      * @param callback 文件回调 再子线程中 不可操作UI 将扫描到的文件通过callback调用
      */
     private fun asyncScan(dirOrFile: File, callback: (file: File) -> Unit) {
+        mScanLevelCont++
+        if (mScanLevel > 0) {
+            if (mScanLevelCont >= mScanLevel) {
+                return
+            }
+        }
         if (isStop) {
             //需要停止
             return
@@ -106,12 +132,6 @@ class ScanFileUtil {
                     callback(dirOrFile)
                 }
                 return@async true
-            }
-
-            if (dirOrFile.isDirectory) {
-                if (filterFile(dirOrFile)) {
-                    callback(dirOrFile)
-                }
             }
 
             val rootFile = getFilterFilesList(dirOrFile)
@@ -144,10 +164,10 @@ class ScanFileUtil {
      * 校验过滤文件
      */
     private fun filterFile(file: File): Boolean {
-        return if (mFilter == null) {
+        return if (mCallBackFilter == null) {
             !isStop
         } else {
-            mFilter!!.accept(file, file.name) && !isStop
+            mCallBackFilter!!.accept(file, file.name) && !isStop
         }
     }
 
@@ -181,17 +201,29 @@ class ScanFileUtil {
     }
 
     /**
-     * 设置文件扫描过滤规则
+     *  文件通过callback返回结果时过滤规则
      */
-    fun setFilter(filter: FilenameFilter?) {
-        this.mFilter = filter
+    fun setCallBackFilter(filter: FilenameFilter?) {
+        this.mCallBackFilter = filter
     }
+
+    /**
+     * 扫描时过滤规则
+     */
+    fun setScanFilter(filter: FilenameFilter?) {
+        this.mScanFilter = filter
+    }
+
 
     /**
      * 获取文件夹中的文件列表 并且引用过滤规则
      */
     private fun getFilterFilesList(file: File): Array<File>? {
-        return file.listFiles()
+        return if (mScanFilter == null) {
+            file.listFiles()
+        } else {
+            file.listFiles(mScanFilter)
+        }
     }
 
 
@@ -200,38 +232,56 @@ class ScanFileUtil {
      */
     class FileFilterBuilder {
 
-        val filseFilterSet: MutableSet<String> = hashSetOf()
+        val mFilseFilterSet: MutableSet<String> = hashSetOf()
 
-        /**
-         * 隐藏文件 true扫描 false不扫描
-         */
+        val mNameLikeFilterSet: MutableSet<String> = hashSetOf()
+
+        val mNameNotLikeFilterSet: MutableSet<String> = hashSetOf()
+
         private var isHiddenFiles = false
 
-        /**
-         * 只要扫描文件
-         */
         private var isOnlyFile = false
 
+        private var isOnlyDir = false
         /**
          * 只扫描文件夹
          */
-        private var isOnlyDir = false
-
         fun onlyScanDir() {
             isOnlyDir = true
         }
 
+        /**
+         * 只要扫描文件
+         */
         fun onlyScanFile() {
             isOnlyFile = true
+        }
+
+        /**
+         * 扫描名字像它的
+         */
+        fun scanNameLikeIt(like: String) {
+            mNameLikeFilterSet.add(like.toLowerCase())
+        }
+
+        /**
+         * 扫描名字不像它的文件
+         * 也就是不扫描名字像这个的文件
+         */
+        fun scanNameNotLikeIt(like: String) {
+            mNameNotLikeFilterSet.add(like.toLowerCase())
         }
 
         /**
          * text文件 true扫描txt文件 false不扫描txt文件
          */
         fun scanTxTFiles() {
-            filseFilterSet.add("txt")
+            mFilseFilterSet.add("txt")
         }
 
+        /**
+         * 隐藏文件 true扫描 false不扫描
+         */
         fun scanHiddenFiles() {
             isHiddenFiles = true
         }
@@ -240,110 +290,149 @@ class ScanFileUtil {
          *  apk文件 true扫描Apk文件 false不扫描Apk文件
          */
         fun scanApkFiles() {
-            filseFilterSet.add("apk")
+            mFilseFilterSet.add("apk")
         }
 
         /**
          *  temp文件 true扫描 false不扫描
          */
         fun scanTempFiles() {
-            filseFilterSet.add("temp")
+            mFilseFilterSet.add("temp")
         }
 
         /**
          * log文件 true扫描 false不扫描
          */
         fun scanLogFiles() {
-            filseFilterSet.add("log")
-            filseFilterSet.add(".qlog")
+            mFilseFilterSet.add("log")
+            mFilseFilterSet.add(".qlog")
         }
 
         /**
          * 扫描文档类型文件
          */
         fun scanDocumentFiles() {
-            filseFilterSet.add("txt")
-            filseFilterSet.add("pdf")
-            filseFilterSet.add("doc")
-            filseFilterSet.add("docx")
-            filseFilterSet.add("xls")
-            filseFilterSet.add("xlsx")
+            mFilseFilterSet.add("txt")
+            mFilseFilterSet.add("pdf")
+            mFilseFilterSet.add("doc")
+            mFilseFilterSet.add("docx")
+            mFilseFilterSet.add("xls")
+            mFilseFilterSet.add("xlsx")
         }
 
         /**
          * 扫描图片类型文件
          */
         fun scanPictureFiles() {
-            filseFilterSet.add("jpg")
-            filseFilterSet.add("jpeg")
-            filseFilterSet.add("png")
-            filseFilterSet.add("bmp")
-            filseFilterSet.add("gif")
+            mFilseFilterSet.add("jpg")
+            mFilseFilterSet.add("jpeg")
+            mFilseFilterSet.add("png")
+            mFilseFilterSet.add("bmp")
+            mFilseFilterSet.add("gif")
         }
 
         /**
          * 扫描多媒体文件类型
          */
         fun scanVideoFiles() {
-            filseFilterSet.add("mp4")
-            filseFilterSet.add("avi")
-            filseFilterSet.add("wmv")
-            filseFilterSet.add("flv")
+            mFilseFilterSet.add("mp4")
+            mFilseFilterSet.add("avi")
+            mFilseFilterSet.add("wmv")
+            mFilseFilterSet.add("flv")
         }
 
         /**
          * 扫描音频文件类型
          */
         fun scanMusicFiles() {
-            filseFilterSet.add("mp3")
-            filseFilterSet.add("ogg")
+            mFilseFilterSet.add("mp3")
+            mFilseFilterSet.add("ogg")
         }
 
         /**
          * 扫描压缩包文件类型
          */
         fun scanZipFiles() {
-            filseFilterSet.add("zip")
-            filseFilterSet.add("rar")
-            filseFilterSet.add("7z")
+            mFilseFilterSet.add("zip")
+            mFilseFilterSet.add("rar")
+            mFilseFilterSet.add("7z")
         }
 
+        /**
+         * 检查名字相似过滤
+         */
+        private fun checkNameLikeFilter(name: String): Boolean {
+            //相似名字获取过滤
+            if (mNameLikeFilterSet.isNotEmpty()) {
+                mNameLikeFilterSet.map {
+                    if (name.toLowerCase().contains(it)) {
+                        return true
+                    }
+                }
+                return false
+            }
+            return true
+        }
+
+        /**
+         * 检查名字不相似过滤
+         */
+        private fun checkNameNotLikeFilter(name: String): Boolean {
+            //名字不相似顾虑
+            if (mNameNotLikeFilterSet.isNotEmpty()) {
+                mNameNotLikeFilterSet.map {
+                    if (name.toLowerCase().contains(it)) {
+                        return false
+                    }
+                }
+                return true
+            }
+            return true
+        }
 
         fun build(): FilenameFilter {
             return object : FilenameFilter {
                 override fun accept(dir: File, name: String): Boolean {
+                    //隐藏文件扫描规则
                     if (isHiddenFiles && dir.isHidden) {
                         return true
                     }
 
+                    //只扫描文件夹
                     if (isOnlyDir) {
                         return dir.isDirectory
+                                && checkNameLikeFilter(name)
+                                && checkNameNotLikeFilter(name)
                     }
-
+                    //只扫描文件 同时应用文件扫描规则
                     if (isOnlyFile) {
                         if (dir.isFile) {
-                            if (filseFilterSet.isNotEmpty()) {
+                            if (mFilseFilterSet.isNotEmpty()) {
                                 //获取文件后缀
                                 val suffix: String =
                                     name.substring(name.indexOfLast { it == '.' } + 1, name.length)
                                         .toLowerCase()
-                                return filseFilterSet.contains(suffix)
+                                return mFilseFilterSet.contains(suffix) && checkNameLikeFilter(name)
+                                        && checkNameNotLikeFilter(name)
                             }
-                            return true
+                            return checkNameLikeFilter(name)
+                                    && checkNameNotLikeFilter(name)
                         } else {
                             return false
                         }
                     }
-
-                    if (filseFilterSet.isEmpty()) {
-                        return true
+                    //文件扫描规则
+                    if (mFilseFilterSet.isEmpty()) {
+                        return checkNameLikeFilter(name)
+                                && checkNameNotLikeFilter(name)
                     }
-
                     //获取文件后缀
                     val suffix: String =
                         name.substring(name.indexOfLast { it == '.' } + 1, name.length)
                             .toLowerCase()
-                    return filseFilterSet.contains(suffix)
+                    return mFilseFilterSet.contains(suffix)
+                            && checkNameLikeFilter(name)
+                            && checkNameNotLikeFilter(name)
                 }
             }
 

@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
 
         val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
             .apply {
-                setFilter(
+                setCallBackFilter(
                     ScanFileUtil.FileFilterBuilder().apply {
 
                     }.build()
@@ -46,7 +46,10 @@ class MainActivity : AppCompatActivity() {
 
         scanBtn.setOnClickListener {
             scanFile.startAsyncScan {
-                Log.d("Scan=>>", "=> ${it.name}   是否是隐藏-${it.isHidden}  读${it.canRead()} 写 ${it.canWrite()}")
+                Log.d(
+                    "Scan=>>",
+                    "=> ${it.path}   是否是隐藏-${it.isHidden}  读${it.canRead()} 写 ${it.canWrite()}"
+                )
             }
         }
 
