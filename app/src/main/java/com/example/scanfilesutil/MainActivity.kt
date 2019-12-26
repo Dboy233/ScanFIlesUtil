@@ -32,24 +32,33 @@ class MainActivity : AppCompatActivity() {
 //        val path = externalCacheDir!!.absolutePath
 
         val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
-            .apply {
-                setCallBackFilter(
-                    ScanFileUtil.FileFilterBuilder().apply {
-
-                    }.build()
-                )
-            }
+        val scanFile2 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
 
         scanFile.completeCallBack {
-            Toast.makeText(this, "扫描完成", Toast.LENGTH_LONG).show()
+//            Toast.makeText(this, "1扫描完成", Toast.LENGTH_LONG).show()
+            Log.d("Scan","1扫描完成")
+        }
+        scanFile2.completeCallBack {
+//            Toast.makeText(this, "2扫描完成", Toast.LENGTH_LONG).show()
+            Log.d("Scan","2扫描完成")
+
         }
 
         scanBtn.setOnClickListener {
             scanFile.startAsyncScan {
                 Log.d(
                     "Scan=>>",
-                    "=> ${it.path}   是否是隐藏-${it.isHidden}  读${it.canRead()} 写 ${it.canWrite()}"
+                    "=>1 ${it.name}   "
                 )
+            }
+            scanFile2.startAsyncScan {
+                Log.d(
+                    "Scan=>>",
+                    "=>2 ${it.name}   "
+                )
+            }
+            ScanFileUtil.await(scanFile.getAwaitInstance(), scanFile2.getAwaitInstance()) {
+                Log.d("Scan", "全部完成了")
             }
         }
 

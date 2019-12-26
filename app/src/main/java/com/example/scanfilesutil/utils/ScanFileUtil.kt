@@ -20,6 +20,23 @@ class ScanFileUtil {
             "${externalStorageDirectory}/Android/data/"
         }
 
+
+        /**
+         * 等待
+         */
+        fun await(vararg deferred: Deferred<Boolean>?, complete: () -> Unit) {
+            GlobalScope.async(Dispatchers.IO) {
+                deferred.map {
+                    if (it?.isActive == true) {
+                        it.await()
+                    }
+                }
+                GlobalScope.launch(Dispatchers.Main) {
+                    complete()
+                }
+            }
+        }
+
     }
 
     /**
@@ -172,21 +189,40 @@ class ScanFileUtil {
     }
 
     /**
+     * 扫描监视回调
+     */
+    var mScanningCheckQueue: Deferred<Boolean>? = null
+
+    /**
+     * 等待完成 在协程中执行
+     */
+    suspend fun await(): Boolean {
+        return mScanningCheckQueue?.await() == true
+    }
+
+    /**
+     * 获取等待实例
+     */
+    fun getAwaitInstance():Deferred<Boolean>?{
+        return mScanningCheckQueue
+    }
+
+    /**
      * 检查协程列队 当所有列队都已完成执行successCallback
      */
     private fun checkQueue() {
-        GlobalScope.launch(Dispatchers.IO) {
+        mScanningCheckQueue = GlobalScope.async<Boolean>(Dispatchers.IO) {
             //当列队为空的时候就扫描完成了
             while (true) {
                 if (isStop) {
                     //需要停止
-                    break
+                    return@async false
                 }
                 //获取头队伍等待await返回完成
                 if (mQueue.poll()?.await() != true) {
                     if (isStop) {
                         //需要停止
-                        break
+                        return@async false
                     }
                     if (mCompleteCallBack != null) {
                         GlobalScope.launch(Dispatchers.Main) {
@@ -194,9 +230,10 @@ class ScanFileUtil {
                             isStop = true
                         }
                     }
-                    break
+                    return@async true
                 }
             }
+            return@async true
         }
     }
 
