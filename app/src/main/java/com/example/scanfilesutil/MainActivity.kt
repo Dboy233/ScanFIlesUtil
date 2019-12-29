@@ -27,38 +27,21 @@ class MainActivity : AppCompatActivity() {
             .subscribe()
 
 
-//        val path = Environment.getExternalStorageDirectory().absolutePath
+        val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory).apply {
 
-//        val path = externalCacheDir!!.absolutePath
-
-        val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
-        val scanFile2 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+        }
 
         scanFile.completeCallBack {
 //            Toast.makeText(this, "1扫描完成", Toast.LENGTH_LONG).show()
             Log.d("Scan","1扫描完成")
-        }
-        scanFile2.completeCallBack {
-//            Toast.makeText(this, "2扫描完成", Toast.LENGTH_LONG).show()
-            Log.d("Scan","2扫描完成")
-
         }
 
         scanBtn.setOnClickListener {
             scanFile.startAsyncScan {
                 Log.d(
                     "Scan=>>",
-                    "=>1 ${it.name}   "
+                    "=>1 ${it.absolutePath}   "
                 )
-            }
-            scanFile2.startAsyncScan {
-                Log.d(
-                    "Scan=>>",
-                    "=>2 ${it.name}   "
-                )
-            }
-            ScanFileUtil.await(scanFile.getAwaitInstance(), scanFile2.getAwaitInstance()) {
-                Log.d("Scan", "全部完成了")
             }
         }
 

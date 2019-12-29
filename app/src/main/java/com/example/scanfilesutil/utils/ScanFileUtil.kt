@@ -13,30 +13,32 @@ class ScanFileUtil {
 
 
     companion object {
+        //手机外部存储根目录
         val externalStorageDirectory by lazy {
             Environment.getExternalStorageDirectory().absolutePath
         }
+        //手机app缓存存放路径
         val android_app_data_folder by lazy {
-            "${externalStorageDirectory}/Android/data/"
+            "$externalStorageDirectory/Android/data"
         }
 
-
         /**
-         * 等待
+         * 等待 多个任务列队完成
          */
         fun await(vararg deferred: Deferred<Boolean>?, complete: () -> Unit) {
             GlobalScope.async(Dispatchers.IO) {
+                //检查所有任务是否在运行 在运行等待运行结束
                 deferred.map {
                     if (it?.isActive == true) {
                         it.await()
                     }
                 }
+                //所有任务都结束了在main线程 回调完成函数
                 GlobalScope.launch(Dispatchers.Main) {
                     complete()
                 }
             }
         }
-
     }
 
     /**
@@ -48,11 +50,11 @@ class ScanFileUtil {
      */
     private val mRootPath: String
     /**
-     * 扫描到文件回调规则
+     * 扫描到文件回调过滤规则
      */
     private var mCallBackFilter: FilenameFilter? = null
     /**
-     * 扫描时的过滤规则
+     * 扫描时的过滤规则 只建议用来过滤隐藏文件和大小为0的文件
      */
     private var mScanFilter: FilenameFilter? = null
     /**
@@ -68,18 +70,15 @@ class ScanFileUtil {
      * 扫描层级
      */
     private var mScanLevel = -1L
-    /**
-     * 记录扫描层级
-     */
-    private var mScanLevelCont = -1L
+
 
     constructor(rootPath: String) {
-        this.mRootPath = rootPath
+        this.mRootPath = rootPath.trimEnd { it == '/' }
         this.mQueue = ConcurrentLinkedQueue<Deferred<Boolean>>()
     }
 
     constructor(rootPath: String, complete: () -> Unit) {
-        this.mRootPath = rootPath
+        this.mRootPath = rootPath.trimEnd { it == '/' }
         this.mQueue = ConcurrentLinkedQueue<Deferred<Boolean>>()
         mCompleteCallBack = complete
     }
@@ -103,7 +102,6 @@ class ScanFileUtil {
      */
     fun stop() {
         isStop = true
-        mQueue.clear()
     }
 
 
@@ -114,7 +112,6 @@ class ScanFileUtil {
         if (!isStop) {
             return
         }
-        mScanLevelCont = -1
         isStop = false
         val file = File(mRootPath)
         if (!file.exists()) {
@@ -132,41 +129,42 @@ class ScanFileUtil {
      * @param callback 文件回调 再子线程中 不可操作UI 将扫描到的文件通过callback调用
      */
     private fun asyncScan(dirOrFile: File, callback: (file: File) -> Unit) {
-        mScanLevelCont++
-        if (mScanLevel > 0) {
-            if (mScanLevelCont >= mScanLevel) {
-                return
-            }
-        }
         if (isStop) {
             //需要停止
             return
         }
         //将任务添加到列队中
         mQueue.offer(GlobalScope.async {
+            //扫描路径层级判断
+            if (checkLevel(dirOrFile)) {
+                return@async true
+            }
+
+            //检查是否是文件 是文件就直接回调 返回true
             if (dirOrFile.isFile) {
                 if (filterFile(dirOrFile)) {
                     callback(dirOrFile)
                 }
                 return@async true
             }
-
+            //获取文件夹中的文件集合
             val rootFile = getFilterFilesList(dirOrFile)
-            //遍历
+            //遍历文件夹
             rootFile?.map {
+                //是否需要停止
                 if (isStop) {
-                    //需要停止
-                    async@ cancel()
-                    return@map
+                    return@async true
                 }
-                //如果是文件夹
+                //如果是文件夹 回调 递归调用函数 再遍历判断
                 if (it.isDirectory) {
                     if (filterFile(it)) {
                         callback(it)
                     }
                     //再次调用自己
                     asyncScan(it, callback)
-                } else {
+                }
+                //是文件 回调
+                else {
                     //验证过滤规则
                     if (filterFile(it)) {
                         callback(it)
@@ -175,6 +173,24 @@ class ScanFileUtil {
             }
             true
         })
+    }
+
+    /**
+     * 检查扫描路径是否已经到指定的层级
+     */
+    private fun checkLevel(dirOrFile: File): Boolean {
+        if (mScanLevel != -1L) {
+            var scanLevelCont = 0L
+            dirOrFile.absolutePath.replace(mRootPath, "").map {
+                if (it == '/') {
+                    scanLevelCont++
+                    if (scanLevelCont >= mScanLevel) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
     }
 
     /**
@@ -191,7 +207,7 @@ class ScanFileUtil {
     /**
      * 扫描监视回调
      */
-  private  var mScanningCheckQueue: Deferred<Boolean>? = null
+    private var mScanningCheckQueue: Deferred<Boolean>? = null
 
     /**
      * 等待完成 在协程中执行
@@ -203,7 +219,7 @@ class ScanFileUtil {
     /**
      * 获取等待实例
      */
-    fun getAwaitInstance():Deferred<Boolean>?{
+    fun getAwaitInstance(): Deferred<Boolean>? {
         return mScanningCheckQueue
     }
 
@@ -216,13 +232,13 @@ class ScanFileUtil {
             while (true) {
                 if (isStop) {
                     //需要停止
-                    return@async false
+                    return@async true
                 }
                 //获取头队伍等待await返回完成
                 if (mQueue.poll()?.await() != true) {
                     if (isStop) {
                         //需要停止
-                        return@async false
+                        return@async true
                     }
                     if (mCompleteCallBack != null) {
                         GlobalScope.launch(Dispatchers.Main) {
@@ -342,7 +358,6 @@ class ScanFileUtil {
          */
         fun scanLogFiles() {
             mFilseFilterSet.add("log")
-            mFilseFilterSet.add("qlog")
             mFilseFilterSet.add("temp")
         }
 
@@ -436,6 +451,8 @@ class ScanFileUtil {
                         return false
                     }
 
+
+
                     //只扫描文件夹
                     if (isOnlyDir) {
                         return dir.isDirectory
@@ -450,7 +467,8 @@ class ScanFileUtil {
                                 val suffix: String =
                                     name.substring(name.indexOfLast { it == '.' } + 1, name.length)
                                         .toLowerCase()
-                                return mFilseFilterSet.contains(suffix) && checkNameLikeFilter(name)
+                                return mFilseFilterSet.contains(suffix)
+                                        && checkNameLikeFilter(name)
                                         && checkNameNotLikeFilter(name)
                             }
                             return checkNameLikeFilter(name)
