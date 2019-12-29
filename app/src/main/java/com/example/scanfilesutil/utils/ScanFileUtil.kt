@@ -284,18 +284,45 @@ class ScanFileUtil {
      * 过滤器构造器
      */
     class FileFilterBuilder {
-
+        /**
+         * 添加自定义filter规则 集合
+         */
+        val customFilterList: MutableList<FilenameFilter> = mutableListOf<FilenameFilter>()
+        /**
+         * 文件类型&文件后缀 扫描过滤规则 集合
+         */
         val mFilseFilterSet: MutableSet<String> = hashSetOf()
-
+        /**
+         * 扫描名字像它的 集合
+         */
         val mNameLikeFilterSet: MutableSet<String> = hashSetOf()
-
+        /**
+         * 扫描名字不像它的文件 集合
+         * 也就是不扫描名字像这个的文件 集合
+         */
         val mNameNotLikeFilterSet: MutableSet<String> = hashSetOf()
-
-        private var isHiddenFiles = false
-
+        /**
+         * 是否扫描隐藏文件 true扫描 false不扫描
+         */
+        private var isScanHiddenFiles = true
+        /**
+         * 只要扫描文件
+         */
         private var isOnlyFile = false
-
+        /**
+         * 只扫描文件夹
+         */
         private var isOnlyDir = false
+
+
+
+        /**
+         * 添加自定义filter规则
+         */
+        fun addCustomFilter(filter: FilenameFilter) {
+            customFilterList.add(filter)
+        }
+
         /**
          * 只扫描文件夹
          */
@@ -336,7 +363,7 @@ class ScanFileUtil {
          * 隐藏文件 true扫描 false不扫描
          */
         fun notScanHiddenFiles() {
-            isHiddenFiles = true
+            isScanHiddenFiles = false
         }
 
         /**
@@ -443,52 +470,62 @@ class ScanFileUtil {
             return true
         }
 
+        /**
+         * 检查文件后缀过滤规则 既文件类型过滤规则
+         */
+        private fun checkSuffixFilter(name: String): Boolean {
+            if (mFilseFilterSet.isNotEmpty()) {
+                //获取文件后缀
+                val suffix: String =
+                    name.substring(name.indexOfLast { it == '.' } + 1, name.length)
+                        .toLowerCase()
+                return mFilseFilterSet.contains(suffix)
+            } else {
+                return true
+            }
+        }
+
         fun build(): FilenameFilter {
             return object : FilenameFilter {
                 override fun accept(dir: File, name: String): Boolean {
-                    //隐藏文件扫描规则
-                    if (isHiddenFiles && dir.isHidden) {
+                    //先检测自定义过滤规则
+                    val customAcceptList: MutableList<Boolean> = mutableListOf()
+                    if (customFilterList.isNotEmpty()) {
+                        for (filenameFilter in customFilterList) {
+                            val accept = filenameFilter.accept(dir, name)
+                            customAcceptList.add(accept)
+                        }
+                    }
+
+                    //隐藏文件扫描规则 优先级高
+                    // isScanHiddenFiles==true 扫描隐藏文件就不判断是不是隐藏文件了
+                    // isScanHiddenFiles==false 不扫描隐藏文件 判断是不是隐藏文件 是隐藏文件就过滤
+                    if (!isScanHiddenFiles && dir.isHidden) {
                         return false
                     }
 
-
-
-                    //只扫描文件夹
+                    //只扫描文件夹 文件夹不需要后缀规则检查checkNameNotLikeFilter
                     if (isOnlyDir) {
                         return dir.isDirectory
                                 && checkNameLikeFilter(name)
                                 && checkNameNotLikeFilter(name)
+                                && (customAcceptList.isEmpty() || !customAcceptList.contains(false))
                     }
+
                     //只扫描文件 同时应用文件扫描规则
                     if (isOnlyFile) {
-                        if (dir.isFile) {
-                            if (mFilseFilterSet.isNotEmpty()) {
-                                //获取文件后缀
-                                val suffix: String =
-                                    name.substring(name.indexOfLast { it == '.' } + 1, name.length)
-                                        .toLowerCase()
-                                return mFilseFilterSet.contains(suffix)
-                                        && checkNameLikeFilter(name)
-                                        && checkNameNotLikeFilter(name)
-                            }
-                            return checkNameLikeFilter(name)
-                                    && checkNameNotLikeFilter(name)
-                        } else {
-                            return false
-                        }
-                    }
-                    //文件扫描规则
-                    if (mFilseFilterSet.isEmpty()) {
-                        return checkNameLikeFilter(name)
+                        return dir.isFile
+                                && checkSuffixFilter(name)
+                                && checkNameLikeFilter(name)
                                 && checkNameNotLikeFilter(name)
+                                && (customAcceptList.isEmpty() || !customAcceptList.contains(false))
                     }
-                    //获取文件后缀
-                    val suffix: String =
-                        name.substring(name.indexOfLast { it == '.' } + 1, name.length)
-                            .toLowerCase()
-                    return mFilseFilterSet.contains(suffix)
+
+                    //默认检查规则
+                    return checkSuffixFilter(name)
                             && checkNameLikeFilter(name)
                             && checkNameNotLikeFilter(name)
+                            && (customAcceptList.isEmpty() || !customAcceptList.contains(false))
                 }
             }
 
