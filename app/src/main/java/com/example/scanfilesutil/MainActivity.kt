@@ -3,6 +3,7 @@ package com.example.scanfilesutil
 import android.Manifest
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.scanfilesutil.utils.FileUtils
 import com.example.scanfilesutil.utils.ScanFileUtil
@@ -18,7 +19,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
         RxPermissions(this)
             .request(
                 Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -28,7 +28,9 @@ class MainActivity : AppCompatActivity() {
             .subscribe()
 
 
-        val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory).apply {
+        val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+
+        scanFile.apply {
             setScanLevel(2)
             setCallBackFilter(ScanFileUtil.FileFilterBuilder().apply {
                 onlyScanDir()
@@ -39,15 +41,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         scanFile.completeCallBack {
-            //            Toast.makeText(this, "1扫描完成", Toast.LENGTH_LONG).show()
-            Log.d("Scan", "1扫描完成")
+            Toast.makeText(this, "scan end 扫描完成", Toast.LENGTH_LONG).show()
         }
 
         scanBtn.setOnClickListener {
             scanFile.startAsyncScan {
                 Log.d(
-                    "Scan=>>",
-                    "=>1 ${it.absolutePath}  size ${FileUtils.getDirLength(it)}  "
+                    "Scan", "${it.absolutePath}  size ${FileUtils.getDirLength(it)}  "
                 )
             }
         }

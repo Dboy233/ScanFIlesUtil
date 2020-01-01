@@ -134,7 +134,7 @@ class ScanFileUtil {
             return
         }
         //将任务添加到列队中
-        mQueue.offer(GlobalScope.async {
+        mQueue.offer(GlobalScope.async{
             //扫描路径层级判断
             if (checkLevel(dirOrFile)) {
                 return@async true
@@ -313,7 +313,6 @@ class ScanFileUtil {
          * 只扫描文件夹
          */
         private var isOnlyDir = false
-
 
 
         /**
@@ -504,7 +503,7 @@ class ScanFileUtil {
                         return false
                     }
 
-                    //只扫描文件夹 文件夹不需要后缀规则检查checkNameNotLikeFilter
+                    //只扫描文件夹 文件夹不需要后缀规则检查
                     if (isOnlyDir) {
                         return dir.isDirectory
                                 && checkNameLikeFilter(name)
