@@ -134,7 +134,7 @@ class ScanFileUtil {
             return
         }
         //将任务添加到列队中
-        mQueue.offer(GlobalScope.async{
+        mQueue.offer(GlobalScope.async {
             //扫描路径层级判断
             if (checkLevel(dirOrFile)) {
                 return@async true
@@ -217,7 +217,8 @@ class ScanFileUtil {
     }
 
     /**
-     * 获取等待实例
+     * 获取扫描任务完成回调
+     * 使用ScanFileUtil.await()时调用此方法
      */
     fun getAwaitComplete(): Deferred<Boolean>? {
         return mScanningCheckQueue
@@ -317,6 +318,7 @@ class ScanFileUtil {
 
         /**
          * 添加自定义filter规则
+         * Add custom filter rule
          */
         fun addCustomFilter(filter: FilenameFilter) {
             customFilterList.add(filter)
@@ -324,6 +326,7 @@ class ScanFileUtil {
 
         /**
          * 只扫描文件夹
+         * Scan folders only
          */
         fun onlyScanDir() {
             isOnlyDir = true
@@ -337,50 +340,50 @@ class ScanFileUtil {
         }
 
         /**
-         * 扫描名字像它的
+         * 扫描名字像它的文件或者文件夹
+         * Scan names like its files or folders
          */
         fun scanNameLikeIt(like: String) {
             mNameLikeFilterSet.add(like.toLowerCase())
         }
 
         /**
-         * 扫描名字不像它的文件
-         * 也就是不扫描名字像这个的文件
+         * 扫描名与其文件不同
+         * 也就是说，不要扫描这样的文件
+         * Scan name is not like its file
+         * That is, don't scan files with names like this
          */
         fun scanNameNotLikeIt(like: String) {
             mNameNotLikeFilterSet.add(like.toLowerCase())
         }
 
         /**
-         * text文件 true扫描txt文件 false不扫描txt文件
+         * 扫描TxT文件
          */
         fun scanTxTFiles() {
             mFilseFilterSet.add("txt")
         }
 
         /**
-         * 隐藏文件 true扫描 false不扫描
+         * 不扫描隐藏文件
+         * Don't scan hidden files
          */
         fun notScanHiddenFiles() {
             isScanHiddenFiles = false
         }
 
         /**
-         *  apk文件 true扫描Apk文件 false不扫描Apk文件
+         *  扫描apk文件
+         * Scan APK files
          */
         fun scanApkFiles() {
             mFilseFilterSet.add("apk")
         }
 
-        /**
-         *  temp文件 true扫描 false不扫描
-         */
-        fun scanTempFiles() {
-            mFilseFilterSet.add("temp")
-        }
 
         /**
-         * log文件 true扫描 false不扫描
+         * 扫描log文件 temp文件
+         * Scan log file temp file
          */
         fun scanLogFiles() {
             mFilseFilterSet.add("log")
@@ -401,6 +404,7 @@ class ScanFileUtil {
 
         /**
          * 扫描图片类型文件
+         *Scan picture type file
          */
         fun scanPictureFiles() {
             mFilseFilterSet.add("jpg")
@@ -412,6 +416,7 @@ class ScanFileUtil {
 
         /**
          * 扫描多媒体文件类型
+         *Scan multimedia file type
          */
         fun scanVideoFiles() {
             mFilseFilterSet.add("mp4")
@@ -422,6 +427,7 @@ class ScanFileUtil {
 
         /**
          * 扫描音频文件类型
+         * Scan audio file type
          */
         fun scanMusicFiles() {
             mFilseFilterSet.add("mp3")
@@ -484,6 +490,10 @@ class ScanFileUtil {
             }
         }
 
+        /**
+         * 创建过滤规则
+         * Create filter rule
+         */
         fun build(): FilenameFilter {
             return object : FilenameFilter {
                 override fun accept(dir: File, name: String): Boolean {
