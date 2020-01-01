@@ -212,14 +212,14 @@ class ScanFileUtil {
     /**
      * 等待完成 在协程中执行
      */
-    suspend fun await(): Boolean {
+    suspend fun awaitComplete(): Boolean {
         return mScanningCheckQueue?.await() == true
     }
 
     /**
      * 获取等待实例
      */
-    fun getAwaitInstance(): Deferred<Boolean>? {
+    fun getAwaitComplete(): Deferred<Boolean>? {
         return mScanningCheckQueue
     }
 
