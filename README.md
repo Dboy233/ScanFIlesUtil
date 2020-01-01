@@ -4,6 +4,8 @@
 
 ### Using coroutine program to scan Android mobile files can be used to scan junk files, cache files, application cache, video files, audio files, text files, etc.
 
+原理解析：https://www.jianshu.com/p/02301b827794
+
 ### 使用方式：
 
 粘贴ScanFileUtil.kt使用
