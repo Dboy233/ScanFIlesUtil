@@ -108,7 +108,7 @@ class ScanFileUtil {
     /**
      * 开始异步扫描文件
      */
-    fun startAsyncScan(callback: (file: File) -> Unit) {
+    fun startAsyncScan(callback: suspend (file: File) -> Unit) {
         if (!isStop) {
             return
         }
@@ -128,7 +128,7 @@ class ScanFileUtil {
      * @param dirOrFile 要扫描的文件 或 文件夹
      * @param callback 文件回调 再子线程中 不可操作UI 将扫描到的文件通过callback调用
      */
-    private fun asyncScan(dirOrFile: File, callback: (file: File) -> Unit) {
+    private fun asyncScan(dirOrFile: File, callback: suspend (file: File) -> Unit) {
         if (isStop) {
             //需要停止
             return
