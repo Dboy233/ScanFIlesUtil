@@ -34,7 +34,7 @@ class ScanFileUtil {
                     }
                 }
                 //所有任务都结束了在main线程 回调完成函数
-                GlobalScope.launch(Dispatchers.Main) {
+                withContext(Dispatchers.Main) {
                     complete()
                 }
             }
@@ -242,7 +242,7 @@ class ScanFileUtil {
                         return@async true
                     }
                     if (mCompleteCallBack != null) {
-                        GlobalScope.launch(Dispatchers.Main) {
+                        withContext(Dispatchers.Main) {
                             mCompleteCallBack?.invoke()
                             isStop = true
                         }
