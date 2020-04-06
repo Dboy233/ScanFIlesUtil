@@ -68,12 +68,12 @@ scanFile2.startAsyncScan{
     Log.d("scanFile2","$it")
 }
 //==================================================================================
-//or 或者同时执行 first and second begin together
-ScanFileUtil.scanTogether(scanFile1,scanFile2){
-    //两个任务全部完成后在UI回调此方法
-    //After both tasks are completed, call back this method in UI
-    Toast.makeText(this, "ScanFile1 scanFile2 all completed", Toast.LENGTH_LONG).show()
-}
+//or 或者同时执行使用第二种使用方式看下面 first and second begin together。see The second way to use it
+//ScanFileUtil.scanTogether(scanFile1,scanFile2){
+//    //两个任务全部完成后在UI回调此方法
+//    //After both tasks are completed, call back this method in UI
+//    Toast.makeText(this, "ScanFile1 scanFile2 all completed", Toast.LENGTH_LONG).show()
+//}
 ```
 
 ### 第二种使用方式 The second way to use it
