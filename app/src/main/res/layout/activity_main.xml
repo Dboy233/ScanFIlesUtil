@@ -1,35 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            xmlns:app="http://schemas.android.com/apk/res-auto"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="1000dp">
+            android:layout_height="1500dp"
+            android:orientation="vertical">
 
+            <TextView
+                android:id="@+id/scan_info_tv"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:gravity="bottom"
+                android:text="扫描信息" />
 
             <Button
                 android:id="@+id/scanBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Scan   File 扫描文件"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                android:onClick="startOneScan"
+                android:text="one Scan File 扫描文件 1"
+                android:textAllCaps="false" />
+
+            <TextView
+                android:id="@+id/scan_two_info_tv"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:gravity="bottom"
+                android:text="扫描2信息" />
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:onClick="startTwoScan"
+                android:text="two Scan File 扫描文件 2"
+                android:textAllCaps="false" />
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:onClick="scanTogether"
+                android:text="one two Scan together 1 , 2 一起扫描" />
 
             <Button
                 android:id="@+id/stopBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:onClick="stopScan"
                 android:text="Stop   Scan 停止扫描"
-                app:layout_constraintBottom_toTopOf="@id/scanBtn" />
+                android:textAllCaps="false" />
 
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

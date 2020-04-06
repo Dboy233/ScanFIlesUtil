@@ -17,6 +17,7 @@ class ScanFileUtil {
         val externalStorageDirectory by lazy {
             Environment.getExternalStorageDirectory().absolutePath
         }
+
         //手机app缓存存放路径
         val android_app_data_folder by lazy {
             "$externalStorageDirectory/Android/data"
@@ -25,12 +26,17 @@ class ScanFileUtil {
         /**
          * 等待 多个任务列队完成
          */
-        fun await(vararg deferred: Deferred<Boolean>?, complete: () -> Unit) {
-            GlobalScope.async(Dispatchers.IO) {
+        fun scanTogether(vararg deferred: ScanFileUtil?, complete: () -> Unit) {
+            GlobalScope.launch(Dispatchers.IO) {
+                //执行扫描
+                deferred.map {
+                    it?.startAsyncScan()
+                }
+
                 //检查所有任务是否在运行 在运行等待运行结束
                 deferred.map {
-                    if (it?.isActive == true) {
-                        it.await()
+                    if (it?.getScanningQueueAsync()?.isActive == true) {
+                        it.getScanningQueueAsync()?.await()
                     }
                 }
                 //所有任务都结束了在main线程 回调完成函数
@@ -45,38 +51,59 @@ class ScanFileUtil {
      * 是否停止扫描
      */
     private var isStop = true
+
     /**
      * 要扫描的根路径
      */
     private val mRootPath: String
+
     /**
      * 扫描到文件回调过滤规则
      */
     private var mCallBackFilter: FilenameFilter? = null
+
     /**
      * 扫描时的过滤规则 只建议用来过滤隐藏文件和大小为0的文件
      */
     private var mScanFilter: FilenameFilter? = null
+
     /**
      * 协程列队
      */
     private val mQueue: ConcurrentLinkedQueue<Deferred<Boolean>>
+
+    /**
+     * 扫描监视回调
+     */
+    private var mScanningCheckQueue: Deferred<Boolean>? = null
+
     /**
      * 扫描完成回调
      */
     private var mCompleteCallBack: (() -> Unit)? = null
 
     /**
+     * 设置扫描时回调接口
+     */
+    private lateinit var mScanningCallBack: suspend ((file: File) -> Unit)
+
+    /**
      * 扫描层级
      */
     private var mScanLevel = -1L
 
-
+    /**
+     * @param rootPath 扫描的路径
+     */
     constructor(rootPath: String) {
         this.mRootPath = rootPath.trimEnd { it == '/' }
         this.mQueue = ConcurrentLinkedQueue<Deferred<Boolean>>()
     }
 
+    /**
+     * @param rootPath 扫描的路径
+     * @param complete 完成回调 == completeCallBack
+     */
     constructor(rootPath: String, complete: () -> Unit) {
         this.mRootPath = rootPath.trimEnd { it == '/' }
         this.mQueue = ConcurrentLinkedQueue<Deferred<Boolean>>()
@@ -86,7 +113,7 @@ class ScanFileUtil {
     /**
      * 设置扫结束回调
      */
-    fun completeCallBack(success: () -> Unit) {
+    fun setCompleteCallBack(success: () -> Unit) {
         mCompleteCallBack = success
     }
 
@@ -98,12 +125,21 @@ class ScanFileUtil {
     }
 
     /**
-     * 停止
+     * 停止 只能使用变量来终端扫描。因为协程线程太多，遍历列队逐个终止貌似不是很现实。
+     * 所以使用变量让各个协程自己处理。终止自己当前的扫描过程。
      */
     fun stop() {
         isStop = true
     }
 
+    /**
+     * 使用这个方法 必须调用 setScanningCallBack
+     */
+    fun startAsyncScan() {
+        if (mScanningCallBack != null) {
+            startAsyncScan(mScanningCallBack)
+        }
+    }
 
     /**
      * 开始异步扫描文件
@@ -113,6 +149,9 @@ class ScanFileUtil {
             return
         }
         isStop = false
+
+        mScanningCallBack=callback
+
         val file = File(mRootPath)
         if (!file.exists()) {
             return
@@ -121,6 +160,13 @@ class ScanFileUtil {
         asyncScan(file, callback)
         //检查协程列队
         checkQueue()
+    }
+
+    /**
+     * 设置扫描时回调
+     */
+    fun setScanningCallBack(callback: suspend (file: File) -> Unit) {
+        mScanningCallBack = callback
     }
 
     /**
@@ -204,23 +250,20 @@ class ScanFileUtil {
         }
     }
 
-    /**
-     * 扫描监视回调
-     */
-    private var mScanningCheckQueue: Deferred<Boolean>? = null
 
     /**
      * 等待完成 在协程中执行
      */
-    suspend fun awaitComplete(): Boolean {
+    suspend fun awaitIsComplete(): Boolean {
         return mScanningCheckQueue?.await() == true
     }
 
     /**
+     * 不要手动调用此方法
      * 获取扫描任务完成回调
-     * 使用ScanFileUtil.await()时调用此方法
+     * 使用ScanFileUtil.awaitMultiScan()时调用此方法
      */
-    fun getAwaitComplete(): Deferred<Boolean>? {
+   private fun getScanningQueueAsync(): Deferred<Boolean>? {
         return mScanningCheckQueue
     }
 
@@ -264,7 +307,7 @@ class ScanFileUtil {
     /**
      * 扫描时过滤规则
      */
-    fun setScanFilter(filter: FilenameFilter?) {
+    fun setScanningFilter(filter: FilenameFilter?) {
         this.mScanFilter = filter
     }
 
@@ -289,27 +332,33 @@ class ScanFileUtil {
          * 添加自定义filter规则 集合
          */
         val customFilterList: MutableList<FilenameFilter> = mutableListOf<FilenameFilter>()
+
         /**
          * 文件类型&文件后缀 扫描过滤规则 集合
          */
         val mFilseFilterSet: MutableSet<String> = hashSetOf()
+
         /**
          * 扫描名字像它的 集合
          */
         val mNameLikeFilterSet: MutableSet<String> = hashSetOf()
+
         /**
          * 扫描名字不像它的文件 集合
          * 也就是不扫描名字像这个的文件 集合
          */
         val mNameNotLikeFilterSet: MutableSet<String> = hashSetOf()
+
         /**
          * 是否扫描隐藏文件 true扫描 false不扫描
          */
         private var isScanHiddenFiles = true
+
         /**
          * 只要扫描文件
          */
         private var isOnlyFile = false
+
         /**
          * 只扫描文件夹
          */
