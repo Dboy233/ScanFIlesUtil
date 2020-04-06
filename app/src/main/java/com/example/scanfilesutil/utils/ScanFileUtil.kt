@@ -8,6 +8,9 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * 扫描文件工具
+ * @author Dboy
+ * @作者： Dboy
+ * @see https://github.com/Dboy233/ScanFIlesUtil
  */
 class ScanFileUtil {
 
