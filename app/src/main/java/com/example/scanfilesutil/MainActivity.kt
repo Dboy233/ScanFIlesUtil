@@ -68,12 +68,43 @@ class MainActivity : AppCompatActivity() {
      * 第二个扫描任务
      */
     private fun initTwo() {
+
         scanFileTwo = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+
+        //设置过滤规则
+        scanFileTwo.setCallBackFilter(ScanFileUtil.FileFilterBuilder()
+            .apply {
+                onlyScanFile()
+                scanApkFiles()
+            }
+            .build());
+
         scanFileTwo.setCompleteCallBack {
             //   处理你的扫描结果 Process your scan results
             //   Log.d("tow Scan",oneFileList.toString())
             scan_two_info_tv.text =" 扫描任务2完成 tow scan complete "
 //            Toast.makeText(this, "two scan end 扫描完成", Toast.LENGTH_SHORT).show()
+        }
+
+        var i = 0
+        //设置扫描时的回调接口
+        scanFileTwo.setScanningCallBack {
+
+            twoFileList.add(it)//保存扫描数据 Save scan data
+
+            //20次回调一次，减少页面刷新频次
+            if (i >= 20) {
+                withContext(Dispatchers.Main) {
+                    scan_two_info_tv.text = it.absolutePath //展示过程 Show the process
+                }
+                i = 0
+            } else {
+                i++
+            }
+
+            Log.d(
+                "two Scan", "${it.absolutePath}  size ${FileUtils.getFileLength(it)}  "
+            )
         }
     }
 
@@ -108,26 +139,6 @@ class MainActivity : AppCompatActivity() {
      */
     fun startTwoScan(view: View) {
         twoFileList.clear()
-        var i = 0
-        //设置扫描时的回调接口
-        scanFileTwo.setScanningCallBack {
-
-            twoFileList.add(it)//保存扫描数据 Save scan data
-
-            //20次回调一次，减少页面刷新频次
-            if (i >= 20) {
-                withContext(Dispatchers.Main) {
-                    scan_two_info_tv.text = it.absolutePath //展示过程 Show the process
-                }
-                i = 0
-            } else {
-                i++
-            }
-
-            Log.d(
-                "two Scan", "${it.absolutePath}  size ${FileUtils.getDirLength(it)}  "
-            )
-        }
         //开始扫描
         scanFileTwo.startAsyncScan()
     }

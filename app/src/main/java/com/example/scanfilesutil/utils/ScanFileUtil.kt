@@ -4,6 +4,7 @@ import android.os.Environment
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FilenameFilter
+import java.lang.Deprecated
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
@@ -11,6 +12,10 @@ import java.util.concurrent.ConcurrentLinkedQueue
  * @author Dboy
  * @作者： Dboy
  * @see https://github.com/Dboy233/ScanFIlesUtil
+ *
+ *  设置你的gradle版本 / Set your gradle version
+ *  targetSdkVersion <= 28
+ *
  */
 class ScanFileUtil {
 
@@ -302,6 +307,7 @@ class ScanFileUtil {
 
     /**
      *  文件通过callback返回结果时过滤规则
+     *  @param filter 使用FileFilterBuilder设置过滤规则
      */
     fun setCallBackFilter(filter: FilenameFilter?) {
         this.mCallBackFilter = filter
@@ -309,7 +315,9 @@ class ScanFileUtil {
 
     /**
      * 扫描时过滤规则
+     * @Deprecated use {@link setCallBackFilter}
      */
+    @Deprecated
     fun setScanningFilter(filter: FilenameFilter?) {
         this.mScanFilter = filter
     }
