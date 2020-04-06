@@ -6,9 +6,9 @@
 
 原理解析：https://juejin.im/post/5e0c3c7d6fb9a0482a60d26f
 
-### [`有疑问或者bug 提交 issues`](https://github.com/Dboy233/ScanFIlesUtil/issues)
+### [`有疑问或者bug 提交 issues,我会及时休整`](https://github.com/Dboy233/ScanFIlesUtil/issues)
 
-### [`Submit issues if you have questions or bugs`](https://github.com/Dboy233/ScanFIlesUtil/issues)
+### [`Submit issues if you have questions or bugs,I will modify it in time.`](https://github.com/Dboy233/ScanFIlesUtil/issues)
 
 ### 使用方式：
 
