@@ -44,6 +44,7 @@ scanFile.startAsyncScan {
 | `setScanLevel(level: Long)`                            | 设置文件夹扫描层级数。从当前目录向下扫描几层文件夹<br />Sets the number of scan levels for the folder. |
 | `setCallBackFilter(filter: FilenameFilter?)`           | 设置文件扫描返回结果时过滤规则<br />Set file filtering rules，Scanning callback results |
 | `setScanningFilter(filter: FilenameFilter?)`           | 扫描时过滤规则，不建议使用此方法，用`setCallBackFilter()`代替。<br />Filter rule during scanning, not recommended，<br />Replace with `setCallBackFilter()` |
+| `scanTogether`                                         | 多个扫描任务一起执行                                         |
 
 ### 一个或多个扫描任务一起工作，Multiple scan tasks working together
 
