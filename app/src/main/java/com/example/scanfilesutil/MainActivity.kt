@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         scanFileOne.setCompleteCallBack {
             //   处理你的扫描结果 Process your scan results
             //   Log.d("tow Scan",oneFileList.toString())
-            scan_info_tv.text =" 扫描任务1完成 one scan complete "
+            scan_info_tv.text = " 扫描任务1完成 one scan complete "
 //            Toast.makeText(this, "one scan end 扫描完成", Toast.LENGTH_SHORT).show()
         }
     }
@@ -77,31 +77,22 @@ class MainActivity : AppCompatActivity() {
                 onlyScanFile()
                 scanApkFiles()
             }
-            .build());
+            .build())
 
         scanFileTwo.setCompleteCallBack {
             //   处理你的扫描结果 Process your scan results
             //   Log.d("tow Scan",oneFileList.toString())
-            scan_two_info_tv.text =" 扫描任务2完成 tow scan complete "
+            scan_two_info_tv.text = " 扫描任务2完成 tow scan complete "
 //            Toast.makeText(this, "two scan end 扫描完成", Toast.LENGTH_SHORT).show()
         }
 
-        var i = 0
         //设置扫描时的回调接口
         scanFileTwo.setScanningCallBack {
 
             twoFileList.add(it)//保存扫描数据 Save scan data
-
-            //20次回调一次，减少页面刷新频次
-            if (i >= 20) {
-                withContext(Dispatchers.Main) {
-                    scan_two_info_tv.text = it.absolutePath //展示过程 Show the process
-                }
-                i = 0
-            } else {
-                i++
+            withContext(Dispatchers.Main) {
+                scan_two_info_tv.text = it.absolutePath //展示过程 Show the process
             }
-
             Log.d(
                 "two Scan", "${it.absolutePath}  size ${FileUtils.getFileLength(it)}  "
             )
@@ -134,6 +125,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
     }
+
     /**
      * 实例2 调用扫描模板2 使用setScanningCallBack和startAsyncScan()完成扫描
      */
@@ -153,7 +145,11 @@ class MainActivity : AppCompatActivity() {
         scanFileTwo.stop()
         ScanFileUtil.scanTogether(scanFileOne, scanFileTwo) {
             Log.d("Scan", "one scan and two scan end,扫描1 和 扫描2 完成")
-            Toast.makeText(applicationContext,"one scan and two scan end,扫描1 和 扫描2 完成",Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                applicationContext,
+                "one scan and two scan end,扫描1 和 扫描2 完成",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
