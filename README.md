@@ -58,22 +58,17 @@ scanFile1.setCompleteCallBack{
      Log.d("ScanFile1","Complete")
 }
 scanFile1.startAsyncScan{
-    Log.d("ScanFile1","$it")
+	//每扫描到一个文件，就回调这里 Scan to a file, call back here
+	Log.d("ScanFile1","$it")
 }
 //独自执行扫描2 The second scan do alone
 scanFile2.setCompleteCallBack{
      Log.d("ScanFile2","Complete")
 }
 scanFile2.startAsyncScan{
-    Log.d("scanFile2","$it")
+	//每扫描到一个文件，就回调这里 Scan to a file, call back here
+	Log.d("scanFile2","$it")
 }
-//==================================================================================
-//or 或者同时执行使用第二种使用方式看下面 first and second begin together。see The second way to use it
-//ScanFileUtil.scanTogether(scanFile1,scanFile2){
-//    //两个任务全部完成后在UI回调此方法
-//    //After both tasks are completed, call back this method in UI
-//    Toast.makeText(this, "ScanFile1 scanFile2 all completed", Toast.LENGTH_LONG).show()
-//}
 ```
 
 ### 第二种使用方式 The second way to use it
@@ -84,21 +79,23 @@ val scanFile2 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
 
 //设置扫描1的回调 The first scan do alone
 scanFile1.setScanningCallBack { file->   //不同于第一种使用 Different from the first use
-     Log.d("ScanFile1","$file")
+	//每扫描到一个文件，就回调这里 Scan to a file, call back here
+	Log.d("ScanFile1","$file")
 }
 scanFile1.setCompleteCallBack{
      Log.d("ScanFile1","ScanFile1 Complete")
 }
-scanFile1.startAsyncScan() //不同于第一种使用  Different from the first use
+scanFile1.startAsyncScan() //不同于第一种使用,使用此方式单独执行  Different from the first use，Use this method to execute alone
 
 //设置扫描2的回调 The second scan do alone
 scanFile2.setScanningCallBack { file->   //不同于第一种使用 Different from the first use
-     Log.d("ScanFile2","$file")
+	//每扫描到一个文件，就回调这里 Scan to a file, call back here
+	Log.d("ScanFile2","$file")
 }
 scanFile2.setCompleteCallBack{ 
      Log.d("ScanFile2","ScanFile2 Complete")
 }
-scanFile2.startAsyncScan()  //不同于第一种使用 Different from the first use
+scanFile2.startAsyncScan()  //不同于第一种使用,使用此方式单独执行 Different from the first use，Use this method to execute alone
 
 
 //======================================================
@@ -112,6 +109,9 @@ ScanFileUtil.scanTogether(scanFile1,scanFile2){
     //After both tasks are completed, call back this method in UI
     Toast.makeText(this, "ScanFile1 scanFile2 all completed", Toast.LENGTH_LONG).show()
 }
+
+注意：使用第一种方式扫描文件，不可以调用这个方法——‘scanTogether’
+Be careful:The first way is not to call this method ——‘scanTogether’
 
 ```
 
