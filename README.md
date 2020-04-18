@@ -83,26 +83,30 @@ val scanFile1 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
 val scanFile2 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
 
 //设置扫描1的回调 The first scan do alone
-scanFile1.setScanningCallBack {   //不同于第一种使用 Different from the first use
-     Log.d("ScanFile1","$it")
+scanFile1.setScanningCallBack { file->   //不同于第一种使用 Different from the first use
+     Log.d("ScanFile1","$file")
 }
 scanFile1.setCompleteCallBack{
-     Log.d("ScanFile1","Complete")
+     Log.d("ScanFile1","ScanFile1 Complete")
 }
 scanFile1.startAsyncScan() //不同于第一种使用  Different from the first use
 
 //设置扫描2的回调 The second scan do alone
-scanFile2.setScanningCallBack { //不同于第一种使用 Different from the first use
-     Log.d("ScanFile1","$it")
+scanFile2.setScanningCallBack { file->   //不同于第一种使用 Different from the first use
+     Log.d("ScanFile2","$file")
 }
 scanFile2.setCompleteCallBack{ 
-     Log.d("ScanFile2","Complete")
+     Log.d("ScanFile2","ScanFile2 Complete")
 }
-scanFile2.startAsyncScan()//不同于第一种使用 Different from the first use
+scanFile2.startAsyncScan()  //不同于第一种使用 Different from the first use
 
 
 //======================================================
 //or 或者同时执行 first and second begin together
+//scanFile1.startAsyncScan() //不用调用这个方法 Do not call this method
+//scanFile2.startAsyncScan() //不用调用这个方法 Do not call this method
+
+//使用这个方法同时开启多个扫描任务 Use this method to start multiple scanning tasks at the same time
 ScanFileUtil.scanTogether(scanFile1,scanFile2){
     //两个任务全部完成后在UI回调此方法
     //After both tasks are completed, call back this method in UI
