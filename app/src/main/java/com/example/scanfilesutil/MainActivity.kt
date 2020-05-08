@@ -15,13 +15,22 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FilenameFilter
 
-
 class MainActivity : AppCompatActivity() {
-    //第一个扫描任务
+    /**
+     *第一个扫描任务
+     */
     private lateinit var scanFileOne: ScanFileUtil
 
-    //第二个扫描任务
+    /**
+     *第二个扫描任务
+     */
     private lateinit var scanFileTwo: ScanFileUtil
+
+    /**
+     * 同时扫描管理类
+     */
+    var mScanTogetherManager: ScanFileUtil.ScanTogetherManager = ScanFileUtil.ScanTogetherManager()
+
 
     private val oneFileList = mutableListOf<File>()
     private val twoFileList = mutableListOf<File>()
@@ -135,15 +144,14 @@ class MainActivity : AppCompatActivity() {
         scanFileTwo.startAsyncScan()
     }
 
+
     /**
      * 两个任务一次扫描
      */
     fun scanTogether(view: View) {
         oneFileList.clear()
         twoFileList.clear()
-        scanFileOne.stop()
-        scanFileTwo.stop()
-        ScanFileUtil.scanTogether(scanFileOne, scanFileTwo) {
+        mScanTogetherManager.scan(scanFileOne, scanFileTwo) {
             Log.d("Scan", "one scan and two scan end,扫描1 和 扫描2 完成")
             Toast.makeText(
                 applicationContext,
@@ -157,8 +165,10 @@ class MainActivity : AppCompatActivity() {
      * 停止所有扫描任务
      */
     fun stopScan(view: View) {
+        mScanTogetherManager.cancel()
         scanFileOne.stop()
         scanFileTwo.stop()
     }
 
 }
+

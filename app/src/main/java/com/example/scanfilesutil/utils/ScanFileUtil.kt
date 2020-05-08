@@ -1,11 +1,11 @@
 package com.example.scanfilesutil.utils
 
 import android.os.Environment
+import android.util.Log
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FilenameFilter
 import java.lang.Deprecated
-import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * 扫描文件工具
@@ -30,29 +30,6 @@ class ScanFileUtil {
         val android_app_data_folder by lazy {
             "$externalStorageDirectory/Android/data"
         }
-
-        /**
-         * 等待 多个任务列队完成
-         */
-        fun scanTogether(vararg deferred: ScanFileUtil?, complete: () -> Unit) {
-            GlobalScope.launch(Dispatchers.IO) {
-                //执行扫描
-                deferred.map {
-                    it?.startAsyncScan()
-                }
-
-                //检查所有任务是否在运行 在运行等待运行结束
-                deferred.map {
-                    if (it?.getScanningQueueAsync()?.isActive == true) {
-                        it.getScanningQueueAsync()?.await()
-                    }
-                }
-                //所有任务都结束了在main线程 回调完成函数
-                withContext(Dispatchers.Main) {
-                    complete()
-                }
-            }
-        }
     }
 
     /**
@@ -76,16 +53,6 @@ class ScanFileUtil {
     private var mScanFilter: FilenameFilter? = null
 
     /**
-     * 协程列队
-     */
-    private val mQueue: ConcurrentLinkedQueue<Deferred<Boolean>>
-
-    /**
-     * 扫描监视回调
-     */
-    private var mScanningCheckQueue: Deferred<Boolean>? = null
-
-    /**
      * 扫描完成回调
      */
     private var mCompleteCallBack: (() -> Unit)? = null
@@ -101,11 +68,21 @@ class ScanFileUtil {
     private var mScanLevel = -1L
 
     /**
+     * 协程扫描任务
+     */
+    private var mCoroutineScope: CoroutineScope? = null
+
+    /**
+     * 协程递归使用次数记录 每次递归调用都会产程一个新的进程 进程执行完成 递减1
+     */
+    private var mCoroutineSize = 0
+
+
+    /**
      * @param rootPath 扫描的路径
      */
     constructor(rootPath: String) {
         this.mRootPath = rootPath.trimEnd { it == '/' }
-        this.mQueue = ConcurrentLinkedQueue<Deferred<Boolean>>()
     }
 
     /**
@@ -114,7 +91,6 @@ class ScanFileUtil {
      */
     constructor(rootPath: String, complete: () -> Unit) {
         this.mRootPath = rootPath.trimEnd { it == '/' }
-        this.mQueue = ConcurrentLinkedQueue<Deferred<Boolean>>()
         mCompleteCallBack = complete
     }
 
@@ -138,6 +114,7 @@ class ScanFileUtil {
      */
     fun stop() {
         isStop = true
+        mCoroutineScope?.cancel()
     }
 
     /**
@@ -150,6 +127,11 @@ class ScanFileUtil {
     }
 
     /**
+     * 扫描用时
+     */
+    var mScanTime = 0L
+
+    /**
      * 开始异步扫描文件
      */
     fun startAsyncScan(callback: suspend (file: File) -> Unit) {
@@ -157,17 +139,20 @@ class ScanFileUtil {
             return
         }
         isStop = false
-
-        mScanningCallBack=callback
+        mCoroutineSize = 0
+        mScanningCallBack = callback
 
         val file = File(mRootPath)
         if (!file.exists()) {
             return
         }
+        //如果协程是空的 或者已经结束过了，重新实例化协程
+        if (mCoroutineScope == null || mCoroutineScope?.isActive == false) {
+            mCoroutineScope = CoroutineScope(Dispatchers.IO)
+        }
+        mScanTime = System.currentTimeMillis()
         //开始扫描
         asyncScan(file, callback)
-        //检查协程列队
-        checkQueue()
     }
 
     /**
@@ -183,15 +168,13 @@ class ScanFileUtil {
      * @param callback 文件回调 再子线程中 不可操作UI 将扫描到的文件通过callback调用
      */
     private fun asyncScan(dirOrFile: File, callback: suspend (file: File) -> Unit) {
-        if (isStop) {
-            //需要停止
-            return
-        }
+        plusCoroutineSize()
         //将任务添加到列队中
-        mQueue.offer(GlobalScope.async {
+        mCoroutineScope?.launch(Dispatchers.IO) {
             //扫描路径层级判断
             if (checkLevel(dirOrFile)) {
-                return@async true
+                checkCoroutineSize()
+                return@launch
             }
 
             //检查是否是文件 是文件就直接回调 返回true
@@ -199,16 +182,13 @@ class ScanFileUtil {
                 if (filterFile(dirOrFile)) {
                     callback(dirOrFile)
                 }
-                return@async true
+                checkCoroutineSize()
+                return@launch
             }
             //获取文件夹中的文件集合
             val rootFile = getFilterFilesList(dirOrFile)
             //遍历文件夹
             rootFile?.map {
-                //是否需要停止
-                if (isStop) {
-                    return@async true
-                }
                 //如果是文件夹 回调 递归调用函数 再遍历判断
                 if (it.isDirectory) {
                     if (filterFile(it)) {
@@ -216,17 +196,45 @@ class ScanFileUtil {
                     }
                     //再次调用自己
                     asyncScan(it, callback)
-                }
-                //是文件 回调
-                else {
+                } else {
+                    //是文件 回调
                     //验证过滤规则
                     if (filterFile(it)) {
                         callback(it)
                     }
                 }
             }
-            true
-        })
+            checkCoroutineSize()
+            return@launch
+        }
+    }
+
+    /**
+     * 增加一次协程使用次数
+     */
+    @Synchronized
+    private fun plusCoroutineSize() {
+        mCoroutineSize++
+    }
+
+    /**
+     * 检查协程使用次数 减少一次
+     * 如果mCoroutineSize==0说明已经扫描完了
+     */
+    @Synchronized
+    private fun checkCoroutineSize() {
+        mCoroutineSize--
+//        Log.d("DJC", "coroutineSize = $mCoroutineSize ")
+        if (mCoroutineSize == 0) {
+            isStop = true
+            if (mCompleteCallBack != null) {
+                mCoroutineScope?.launch(Dispatchers.Main) {
+                    mCompleteCallBack?.invoke()
+                    mCoroutineScope?.cancel()
+                }
+            }
+            Log.d("DJC", "time = ${System.currentTimeMillis() - mScanTime}")
+        }
     }
 
     /**
@@ -258,51 +266,13 @@ class ScanFileUtil {
         }
     }
 
-
-    /**
-     * 等待完成 在协程中执行
-     */
-    suspend fun awaitIsComplete(): Boolean {
-        return mScanningCheckQueue?.await() == true
-    }
-
     /**
      * 不要手动调用此方法
      * 获取扫描任务完成回调
      * 使用ScanFileUtil.awaitMultiScan()时调用此方法
      */
-   private fun getScanningQueueAsync(): Deferred<Boolean>? {
-        return mScanningCheckQueue
-    }
-
-    /**
-     * 检查协程列队 当所有列队都已完成执行successCallback
-     */
-    private fun checkQueue() {
-        mScanningCheckQueue = GlobalScope.async<Boolean>(Dispatchers.IO) {
-            //当列队为空的时候就扫描完成了
-            while (true) {
-                if (isStop) {
-                    //需要停止
-                    return@async true
-                }
-                //获取头队伍等待await返回完成
-                if (mQueue.poll()?.await() != true) {
-                    if (isStop) {
-                        //需要停止
-                        return@async true
-                    }
-                    if (mCompleteCallBack != null) {
-                        withContext(Dispatchers.Main) {
-                            mCompleteCallBack?.invoke()
-                            isStop = true
-                        }
-                    }
-                    return@async true
-                }
-            }
-            return@async true
-        }
+    private fun getScanningQueueAsync(): CoroutineScope? {
+        return mCoroutineScope
     }
 
     /**
@@ -334,6 +304,66 @@ class ScanFileUtil {
         }
     }
 
+    /**
+     * 一起扫描管理类
+     * 提供扫描和停止方法
+     */
+    class ScanTogetherManager {
+
+        private var mTogetherJob = mutableSetOf<ScanFileUtil>()
+
+        private var launch: Job? = null
+
+        private var mCompleteCallBack: (() -> Unit)? = null
+
+
+        fun scan(vararg deferred: ScanFileUtil?, complete: () -> Unit) {
+            if (launch != null && launch?.isActive == true) {
+                return
+            }
+
+            mTogetherJob.clear()
+
+            deferred.map {
+                it?.apply {
+                    mTogetherJob.add(this)
+                }
+            }
+            mCompleteCallBack = complete
+
+            launch = GlobalScope.launch(Dispatchers.IO) {
+                //执行扫描
+                mTogetherJob.map {
+                    it.stop()
+                    it.startAsyncScan()
+                }
+
+                //检查所有任务是否在运行 在运行等待运行结束
+                mTogetherJob.map {
+                    while (it.getScanningQueueAsync()?.isActive == true);
+                }
+                //所有任务都结束了在main线程 回调完成函数
+                withContext(Dispatchers.Main) {
+                    mCompleteCallBack?.invoke()
+                }
+            }
+        }
+
+        fun cancel() {
+
+            launch?.cancel()
+
+            for (scanFileUtil in mTogetherJob) {
+                scanFileUtil.stop()
+            }
+
+            mTogetherJob.clear()
+        }
+
+        fun clear() {
+            mTogetherJob.clear()
+        }
+    }
 
     /**
      * 过滤器构造器
