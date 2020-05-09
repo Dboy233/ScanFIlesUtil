@@ -14,10 +14,32 @@ import java.lang.Deprecated
  * @作者： Dboy
  * @see  https://github.com/Dboy233/ScanFIlesUtil
  * @param targetSdkVersion  targetSdkVersion <= 28 ; 设置你的gradle版本 / Set your gradle version
+ * @sample {
+ *    val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+ *
+ *          //设置过滤规则 Set up filter rules
+ *          scanFile.setCallBackFilter(
+ *                  ScanFileUtil.FileFilterBuilder() .apply {
+ *                                  onlyScanFile()
+ *                                   scanApkFiles()
+ *                             }.build())
+ *
+ *      //设置完成扫描回调,Set scan completion callback
+ *      scanFile.setCompleteCallBack{
+ *          Log.d("Scan","scan complete")
+ *      }
+ *
+ *      //设置扫描时回调,Set callback when scanning
+ *      scanFileTwo.setScanningCallBack{
+ *           Log.d("Scan", "${it.absolutePath}  size ${FileUtils.getFileLength(it)}  ")
+ *      }
+ *
+ *      //开始扫描 Start scanning
+ *      scanFileTwo.startAsyncScan()
+ * }
  *
  */
 class ScanFileUtil {
-
 
     companion object {
         //手机外部存储根目录 Mobile storage root directory

@@ -90,7 +90,7 @@ class MainActivity : AppCompatActivity() {
 
         scanFileTwo.setCompleteCallBack {
             //   处理你的扫描结果 Process your scan results
-            //   Log.d("tow Scan",oneFileList.toString())
+            //   Log.d("tow Scan",twoFileList.toString())
             scan_two_info_tv.text = " 扫描任务2完成 tow scan complete ;time:${scanFileTwo.getScanTimeConsuming()}"
 //            Toast.makeText(this, "two scan end 扫描完成", Toast.LENGTH_SHORT).show()
         }
