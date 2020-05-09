@@ -77,6 +77,10 @@ class ScanFileUtil {
      */
     private var mCoroutineSize = 0
 
+    /**
+     * 扫描用时
+     */
+    private var mScanTime = 0L
 
     /**
      * @param rootPath 扫描的路径
@@ -118,6 +122,11 @@ class ScanFileUtil {
     }
 
     /**
+     * 获取扫描耗时
+     */
+    fun getScanTimeConsuming() = mScanTime
+
+    /**
      * 使用这个方法 必须调用 setScanningCallBack
      */
     fun startAsyncScan() {
@@ -126,10 +135,6 @@ class ScanFileUtil {
         }
     }
 
-    /**
-     * 扫描用时
-     */
-    var mScanTime = 0L
 
     /**
      * 开始异步扫描文件
@@ -224,16 +229,15 @@ class ScanFileUtil {
     @Synchronized
     private fun checkCoroutineSize() {
         mCoroutineSize--
-//        Log.d("DJC", "coroutineSize = $mCoroutineSize ")
         if (mCoroutineSize == 0) {
             isStop = true
             if (mCompleteCallBack != null) {
                 mCoroutineScope?.launch(Dispatchers.Main) {
+                    mScanTime = System.currentTimeMillis() - mScanTime
                     mCompleteCallBack?.invoke()
                     mCoroutineScope?.cancel()
                 }
             }
-            Log.d("DJC", "time = ${System.currentTimeMillis() - mScanTime}")
         }
     }
 
@@ -309,28 +313,42 @@ class ScanFileUtil {
      * 提供扫描和停止方法
      */
     class ScanTogetherManager {
-
+        /**
+         * 要一起扫描的任务集合Set
+         */
         private var mTogetherJob = mutableSetOf<ScanFileUtil>()
 
+        /**
+         * 检查任务是否完成的进程
+         */
         private var launch: Job? = null
 
+        /**
+         * 全部完成回调
+         */
         private var mCompleteCallBack: (() -> Unit)? = null
 
-
+        /**
+         * 开始扫描
+         * @param deferred 扫描任务
+         * @param complete 完成回调
+         */
         fun scan(vararg deferred: ScanFileUtil?, complete: () -> Unit) {
+            //如果任务已经开始了不允许再次执行和调用
             if (launch != null && launch?.isActive == true) {
                 return
             }
-
+            //清空上次执行列表
             mTogetherJob.clear()
-
+            //添加这次执行的任务队列
             deferred.map {
                 it?.apply {
                     mTogetherJob.add(this)
                 }
             }
+            //确认完成回调
             mCompleteCallBack = complete
-
+            //开启任务
             launch = GlobalScope.launch(Dispatchers.IO) {
                 //执行扫描
                 mTogetherJob.map {
@@ -349,17 +367,23 @@ class ScanFileUtil {
             }
         }
 
+        /**
+         * 取消同时执行的扫描任务
+         */
         fun cancel() {
-
+            //先取消当前的任务
             launch?.cancel()
-
+            //依次取消同行的任务
             for (scanFileUtil in mTogetherJob) {
                 scanFileUtil.stop()
             }
-
+            //清空任务列表
             mTogetherJob.clear()
         }
 
+        /**
+         * 清空任务列表
+         */
         fun clear() {
             mTogetherJob.clear()
         }

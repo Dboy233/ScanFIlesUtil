@@ -47,6 +47,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:onClick="scanTogether"
+                android:textAllCaps="false"
                 android:text="one two Scan together 1 , 2 一起扫描" />
 
             <Button
