@@ -9,6 +9,8 @@ import java.lang.Deprecated
 
 /**
  * 扫描文件工具
+ * Scan file tool
+ *
  * @author Dboy
  * @作者： Dboy
  * @see https://github.com/Dboy233/ScanFIlesUtil
