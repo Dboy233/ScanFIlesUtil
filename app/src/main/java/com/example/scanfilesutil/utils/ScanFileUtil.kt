@@ -78,18 +78,6 @@ class ScanFileUtil {
     private var mScanFilter: FilenameFilter? = null
 
     /**
-     * 扫描完成回调
-     * Scan completion callback
-     */
-    private var mCompleteCallBack: (() -> Unit)? = null
-
-    /**
-     * 设置扫描时回调接口
-     * Set the callback interface when scanning
-     */
-    private lateinit var mScanningCallBack: suspend ((file: File) -> Unit)
-
-    /**
      * 扫描层级
      * Scan level
      */
@@ -115,6 +103,12 @@ class ScanFileUtil {
     private var mScanTime = 0L
 
     /**
+     * 文件扫描回调
+     * File scanning callback
+     */
+    private var mScanFileListener: ScanFileListener? = null
+
+    /**
      * @param rootPath 扫描的路径 Scanning path
      */
     constructor(rootPath: String) {
@@ -125,16 +119,16 @@ class ScanFileUtil {
      * @param rootPath 扫描的路径 Scanning path
      * @param complete 完成回调 == completeCallBack
      */
-    constructor(rootPath: String, complete: () -> Unit) {
+    constructor(rootPath: String, scanFileListener: ScanFileListener) {
         this.mRootPath = rootPath.trimEnd { it == '/' }
-        mCompleteCallBack = complete
+        mScanFileListener = scanFileListener
     }
 
     /**
-     * 设置扫结束回调  Set sweep end callback
+     * 设置扫描监听器 ，Set Scan Listener
      */
-    fun setCompleteCallBack(success: () -> Unit) {
-        mCompleteCallBack = success
+    fun setScanFileListener(scanFileListener: ScanFileListener) {
+        mScanFileListener = scanFileListener
     }
 
     /**
@@ -160,28 +154,17 @@ class ScanFileUtil {
      */
     fun getScanTimeConsuming() = mScanTime
 
-    /**
-     * 使用这个方法 必须调用 {@see ScanFileUtil#setScanningCallBack}
-     * To use this method, you must call {@see ScanFileUtil#setScanningCallBack}
-     */
-    fun startAsyncScan() {
-        if (mScanningCallBack != null) {
-            startAsyncScan(mScanningCallBack)
-        }
-    }
-
 
     /**
      * 开始异步扫描文件
      * Start scanning files asynchronously
      */
-    fun startAsyncScan(callback: suspend (file: File) -> Unit) {
+    fun startAsyncScan() {
         if (!isStop) {
             return
         }
         isStop = false
         mCoroutineSize = 0
-        mScanningCallBack = callback
 
         //检查路径的可用性
         //Check path availability
@@ -195,18 +178,12 @@ class ScanFileUtil {
             mCoroutineScope = CoroutineScope(Dispatchers.IO)
         }
         mScanTime = System.currentTimeMillis()
+        mScanFileListener?.scanBegin()
         //开始扫描
         //Start scanning
-        asyncScan(file, callback)
+        asyncScan(file)
     }
 
-    /**
-     * 设置扫描时回调
-     * Set callback when scanning
-     */
-    fun setScanningCallBack(callback: suspend (file: File) -> Unit) {
-        mScanningCallBack = callback
-    }
 
     /**
      * 异步扫描文件， 递归调用
@@ -216,7 +193,7 @@ class ScanFileUtil {
      *                  File callback In the sub-thread,
      *                  inoperable ui will call the scanned file through callback
      */
-    private fun asyncScan(dirOrFile: File, callback: suspend (file: File) -> Unit) {
+    private fun asyncScan(dirOrFile: File) {
         plusCoroutineSize()
         //将任务添加到列队中 Add tasks to the queue
         mCoroutineScope?.launch(Dispatchers.IO) {
@@ -230,7 +207,7 @@ class ScanFileUtil {
             //Check whether it is a file or a file, and call back directly to return true
             if (dirOrFile.isFile) {
                 if (filterFile(dirOrFile)) {
-                    callback(dirOrFile)
+                    mScanFileListener?.scanningCallBack(dirOrFile)
                 }
                 checkCoroutineSize()
                 return@launch
@@ -245,16 +222,16 @@ class ScanFileUtil {
                 //If it is a folder-callback, call yourself and then traverse the scan
                 if (it.isDirectory) {
                     if (filterFile(it)) {
-                        callback(it)
+                        mScanFileListener?.scanningCallBack(dirOrFile)
                     }
                     //再次调用此方法
                     //Call this method again
-                    asyncScan(it, callback)
+                    asyncScan(it)
                 } else {
                     //是文件,回调,验证过滤规则
                     //Is a file, callback, verification filter rules
                     if (filterFile(it)) {
-                        callback(it)
+                        mScanFileListener?.scanningCallBack(dirOrFile)
                     }
                 }
             }
@@ -286,13 +263,12 @@ class ScanFileUtil {
         // have been executed and you can call back the completion
         if (mCoroutineSize == 0) {
             isStop = true
-            if (mCompleteCallBack != null) {
-                mCoroutineScope?.launch(Dispatchers.Main) {
-                    mScanTime = System.currentTimeMillis() - mScanTime
-                    mCompleteCallBack?.invoke()
-                    mCoroutineScope?.cancel()
-                }
+            mCoroutineScope?.launch(Dispatchers.Main) {
+                mScanTime = System.currentTimeMillis() - mScanTime
+                mScanFileListener?.scanComplete(mScanTime)
+                mCoroutineScope?.cancel()
             }
+
         }
     }
 
@@ -349,7 +325,11 @@ class ScanFileUtil {
     }
 
     /**
-     * 扫描时过滤规则 Filter rules when scanning
+     * 扫描时过滤规则
+     * 过滤速度很快，但是可能会过滤掉一些父级文件夹，它的子文件夹将不会被扫描
+     * Filter rules when scanning.
+     * The filtering speed is fast, but some parent folders may be filtered out,
+     * and its subfolders will not be scanned
      * @Deprecated use {@link setCallBackFilter}
      */
     @Deprecated
@@ -718,6 +698,28 @@ class ScanFileUtil {
 
         }
 
+    }
+
+    /**
+     * 扫描文件监听器
+     * Scanning file listener
+     */
+    interface ScanFileListener {
+
+        /**
+         * 扫描开始的时候
+         */
+        fun scanBegin()
+
+        /**
+         * @param timeConsuming 耗时
+         */
+        fun scanComplete(timeConsuming: Long)
+
+        /**
+         * @param file 扫描的文件
+         */
+        suspend fun scanningCallBack(file: File)
     }
 
 }
