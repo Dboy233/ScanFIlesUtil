@@ -719,7 +719,7 @@ class ScanFileUtil {
         /**
          * @param file 扫描的文件
          */
-        suspend fun scanningCallBack(file: File)
+          fun scanningCallBack(file: File)
     }
 
 }

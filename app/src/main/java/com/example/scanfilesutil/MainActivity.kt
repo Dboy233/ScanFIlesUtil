@@ -11,6 +11,8 @@ import com.example.scanfilesutil.utils.ScanFileUtil
 import com.tbruyelle.rxpermissions2.RxPermissions
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FilenameFilter
@@ -57,21 +59,23 @@ class MainActivity : AppCompatActivity() {
     private fun initOne() {
         scanFileOne = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
 
-//        scanFileOne.apply {
-//            setCallBackFilter(ScanFileUtil.FileFilterBuilder().apply {
-//                onlyScanDir()
-//                addCustomFilter(FilenameFilter { dir, name ->
-//                    FileUtils.getDirLength(dir) == 0L
-//                })
-//            }.build())
-//
-//        }
+        scanFileOne.apply {
+            setCallBackFilter(ScanFileUtil.FileFilterBuilder().apply {
+                onlyScanDir()
+                addCustomFilter(FilenameFilter { dir, name ->
+                    FileUtils.getDirLength(dir) == 0L
+                })
+            }.build())
+
+        }
 
         scanFileOne.setScanFileListener(object : ScanFileUtil.ScanFileListener {
             var i = 0
             override fun scanBegin() {
+                oneFileList.clear()
                 i = 0
             }
+
             override fun scanComplete(timeConsuming: Long) {
                 //   处理你的扫描结果 Process your scan results
                 //   Log.d("tow Scan",oneFileList.toString())
@@ -79,20 +83,22 @@ class MainActivity : AppCompatActivity() {
                     " 扫描任务1完成 one scan complete ; time:${timeConsuming}"
 //            Toast.makeText(this, "one scan end 扫描完成", Toast.LENGTH_SHORT).show()
             }
-            override suspend fun scanningCallBack(file: File) {
 
+            override fun scanningCallBack(file: File) {
                 oneFileList.add(file)//保存扫描数据 Save scan data
-                if (i >= 20) {
+                //以下代码不推荐 避免耗时操作，计算操作，会影响扫描速度
+                //The following code is not recommended to avoid time-consuming operations,
+                // calculation operations will affect the scanning speed
+                if (i == 20) {
                     i = 0
                     //20次回调一次，减少页面刷新频次
-                    withContext(Dispatchers.Main) {
+                    GlobalScope.launch(Dispatchers.Main) {
                         scan_info_tv.text = file.absolutePath//展示过程 Show the process
                     }
+                } else {
+                    i++
                 }
-                i++
-                Log.d(
-                    "one Scan", "${file.absolutePath}  size ${FileUtils.getDirLength(file)}  "
-                )
+                Log.d("one Scan", "${file.absolutePath}")
             }
 
         })
@@ -108,6 +114,7 @@ class MainActivity : AppCompatActivity() {
                 var i = 0
                 override fun scanBegin() {
                     i = 0
+                    twoFileList.clear()
                 }
 
                 override fun scanComplete(timeConsuming: Long) {
@@ -118,18 +125,20 @@ class MainActivity : AppCompatActivity() {
                     // Toast.makeText(this, "two scan end 扫描完成", Toast.LENGTH_SHORT).show()
                 }
 
-                override suspend fun scanningCallBack(file: File) {
+                override fun scanningCallBack(file: File) {
                     twoFileList.add(file)//保存扫描数据 Save scan data
-                    if (i >= 20) {
+                    //以下代码不推荐 避免耗时操作，计算操作，会影响扫描速度，尽量只执行保存文件的操作
+                    //The following code is not recommended to avoid time-consuming operations,
+                    // calculation operations will affect the scanning speed，Only save the file
+                    if (i == 20) {
                         i = 0
-                        withContext(Dispatchers.Main) {
+                        GlobalScope.launch(Dispatchers.Main) {
                             scan_two_info_tv.text = file.absolutePath //展示过程 Show the process
                         }
+                    } else {
+                        i++
                     }
-                    i++
-                    Log.d(
-                        "two Scan", "${file.absolutePath}  size ${FileUtils.getFileLength(file)}  "
-                    )
+                    Log.d("two Scan", "${file.absolutePath}}")
                 }
             })
 
@@ -146,9 +155,6 @@ class MainActivity : AppCompatActivity() {
      * 实例1 调用扫描模板1 使用startAsyncScan(callBack)回调
      */
     fun startOneScan(view: View) {
-        oneFileList.clear()
-        var i = 0
-        //开始扫描
         scanFileOne.startAsyncScan()
     }
 
@@ -156,8 +162,6 @@ class MainActivity : AppCompatActivity() {
      * 实例2 调用扫描模板2 使用setScanningCallBack和startAsyncScan()完成扫描
      */
     fun startTwoScan(view: View) {
-        twoFileList.clear()
-        //开始扫描
         scanFileTwo.startAsyncScan()
     }
 
