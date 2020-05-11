@@ -10,9 +10,9 @@
 
 ##### 使用方式：
 
-粘贴ScanFileUtil.kt使用
+粘贴[ScanFileUtil.kt](https://github.com/Dboy233/ScanFIlesUtil/blob/master/app/src/main/java/com/example/scanfilesutil/utils/ScanFileUtil.kt)使用
 
-Paste ScanFileUtil.kt to use
+Paste [ScanFileUtil.kt](https://github.com/Dboy233/ScanFIlesUtil/blob/master/app/src/main/java/com/example/scanfilesutil/utils/ScanFileUtil.kt) to use
 
 ```kotlin
  val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
