@@ -1,125 +1,162 @@
 # ScanFileUtil
 
-### 使用协程扫描手机文件，可用来扫描垃圾文件，缓存文件，应用缓存，视频文件，音频文件，文本文件，等等。
+ 使用协程扫描手机文件，可用来扫描垃圾文件，缓存文件，应用缓存，视频文件，音频文件，文本文件，等等.
 
-### Using coroutine program to scan Android mobile files can be used to scan junk files, cache files, application cache, video files, audio files, text files, etc.
+ Using coroutine program to scan Android mobile files can be used to scan junk files, cache files, application cache, video files, audio files, text files, etc.
 
-原理解析：https://juejin.im/post/5e0c3c7d6fb9a0482a60d26f
+ [`有疑问或者bug 提交 issues,我会及时休整`](https://github.com/Dboy233/ScanFIlesUtil/issues)
 
-### [`有疑问或者bug 提交 issues,我会及时休整`](https://github.com/Dboy233/ScanFIlesUtil/issues)
+ [`Submit issues if you have questions or bugs,I will modify it in time.`](https://github.com/Dboy233/ScanFIlesUtil/issues)
 
-### [`Submit issues if you have questions or bugs,I will modify it in time.`](https://github.com/Dboy233/ScanFIlesUtil/issues)
-
-### 使用方式：
+##### 使用方式：
 
 粘贴ScanFileUtil.kt使用
 
 Paste ScanFileUtil.kt to use
 
 ```kotlin
-val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
-//设置扫描完成回调
-//Set scan completion callback
-scanFile.completeCallBack {
-	Toast.makeText(this, "scan end 扫描完成", Toast.LENGTH_LONG).show()
-	Log.d("ScanFileUtil","$fileList")
-}
-//开始异步扫描文件，注意：不要用此方法更新UI
-//Start to scan files asynchronously, note: do not use this method to update UI
-scanFile.startAsyncScan {
-	fileList.add(it)
+ val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+       //设置过滤规则 Set up filter rules
+       scanFile.setCallBackFilter(
+               ScanFileUtil.FileFilterBuilder() .apply {
+                               onlyScanFile()//只扫描文件
+                                scanApkFiles()//只扫描APK文件
+                   //...
+                          }.build())
+
+scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
+        /**
+         * 扫描开始的时候
+         */
+        fun scanBegin(){
+        }
+        /**
+         * 扫描完成 Scan Complete
+         * @param timeConsuming 耗时
+         */
+        fun scanComplete(timeConsuming: Long){
+        }
+        /**
+          * @param file 扫描的文件,Scanned file
+          */
+       fun scanningCallBack(file: File){
+       }
+ })
+   //开始扫描 Start scanning
+   scanFile.startAsyncScan()
 }
 ```
 
-### 基础使用Api方法
+##### API介绍/API introduction
 
-| APi                                                    | describe                                                     |
-| ------------------------------------------------------ | ------------------------------------------------------------ |
-| `ScanFileUtil(rootPath)`                               | rootPath=需要扫描的路径<br />rootPath=Path to scan           |
-| `ScanFileUtil(rootPath: String, complete: () -> Unit)` | rootPath=需要扫描的路径<br />rootPath=Path to scan<br />complete = `setCompleteCallBack`  you know it |
-| `setCompleteCallBack(success: () -> Unit)`             | 设置完成回调与第二个构造函数相同<br />Setting the completion callback<br /> is the same as the second constructor |
-| `setScanningCallBack(callback: (file: File) -> Unit)`  | 设置扫描时的回调 <br/>Sets the callback for the scan<br/>    |
-| `startAsyncScan()`                                     | 开始异步扫描文件<br />配合 `setScanningCallBack`使用<br />Start asynchronous file scan<br />must use `setScanningCallBack` |
-| `startAsyncScan(callback: (file: File) -> Unit)`       | 开始异步扫描文件<br />Start asynchronous file scan           |
-| `setScanLevel(level: Long)`                            | 设置文件夹扫描层级数。从当前目录向下扫描几层文件夹<br />Sets the number of scan levels for the folder. |
-| `setCallBackFilter(filter: FilenameFilter?)`           | 设置文件扫描返回结果时过滤规则<br />Set file filtering rules，Scanning callback results |
-| `setScanningFilter(filter: FilenameFilter?)`           | 扫描时过滤规则，不建议使用此方法，用`setCallBackFilter()`代替。<br />Filter rule during scanning, not recommended，<br />Replace with `setCallBackFilter()` |
-| `scanTogether`                                         | 多个扫描任务一起执行                                         |
+`ScanFileUtil` Api
 
-### 一个或多个扫描任务一起工作，Multiple scan tasks working together
+| APi                                                          | describe                                                     |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `ScanFileUtil(rootPath)`                                     | rootPath=需要扫描的路径<br />rootPath=Path to scan           |
+| `ScanFileUtil(rootPath: String, scanFileListener: ScanFileListener)` | rootPath=需要扫描的路径<br />rootPath=Path to scan<br />scanFileListener= `setScanFileListener`  Scan Listener |
+| `setScanFileListener(scanFileListener: ScanFileListener)`    | 设置扫描监听器 ，Set Scan Listener                           |
+| `startAsyncScan()`                                           | 开始异步扫描文件<br />配合 `setScanningCallBack`使用<br />Start asynchronous file scan<br />must use `setScanningCallBack` |
+| `setScanLevel(level: Long)`                                  | 设置文件夹扫描层级数。从当前目录向下扫描几层文件夹<br />Sets the number of scan levels for the folder. |
+| `setCallBackFilter(filter: FilenameFilter?)`                 | 设置文件扫描返回结果时过滤规则<br />Set file filtering rules，Scanning callback results |
+| `setScanningFilter(filter: FilenameFilter?)`                 | 扫描时过滤规则，不建议使用此方法，用`setCallBackFilter()`代替。<br />Filter rule during scanning, not recommended，<br />Replace with `setCallBackFilter()` |
+| `stop()`                                                     | 停止扫描，Stop scanning                                      |
 
-### 第一种使用方式 The first way to use it
+`ScanFileListener` method
 
-```kotlin
-val scanFile1 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
-val scanFile2 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
-//独自执行扫描1 The first scan do alone
-scanFile1.setCompleteCallBack{
-     Log.d("ScanFile1","Complete")
-}
-scanFile1.startAsyncScan{
-	//每扫描到一个文件，就回调这里 Scan to a file, call back here
-	Log.d("ScanFile1","$it")
-}
-//独自执行扫描2 The second scan do alone
-scanFile2.setCompleteCallBack{
-     Log.d("ScanFile2","Complete")
-}
-scanFile2.startAsyncScan{
-	//每扫描到一个文件，就回调这里 Scan to a file, call back here
-	Log.d("scanFile2","$it")
-}
-```
+| 接口方法/Interface function             | 描述/description                                             |
+| --------------------------------------- | ------------------------------------------------------------ |
+| `fun scanBegin()`                       | 扫描开始的时候 /When the scan starts                         |
+| `fun scanComplete(timeConsuming: Long)` | 扫描完成回调/Scan completion callback                        |
+| `fun scanningCallBack(file: File)`      | 扫描到文件时回调，每扫描到一个文件触发一次<br>Callback when a file is scanned, <br>triggered every time a file is scanned |
 
-### 第二种使用方式 The second way to use it
+
+
+`ScanTogetherManager` API
+
+| 方法/function                                                | 描述/description                                      |
+| ------------------------------------------------------------ | ----------------------------------------------------- |
+| `fun scan(vararg arrayOfScanFileUtils: ScanFileUtil?, allCompleteCallBack: () -> Unit)` | 开始扫描/Startscanning                                |
+| `fun cancel()`                                               | 取消同时执行的扫描任务/Cancel simultaneous scan tasks |
+| `fun clear()`                                                | 清空任务列表/Clear the task list                      |
+
+
+
+##### 可以一个或多个扫描任务一起工作/Can work with one or more scan tasks
 
 ```kotlin
-val scanFile1 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
-val scanFile2 = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+val oneFileList = mutableListOf<File>()
+val twoFileList = mutableListOf<File>()
 
-//设置扫描1的回调 The first scan do alone
-scanFile1.setScanningCallBack { file->   //不同于第一种使用 Different from the first use
-	//每扫描到一个文件，就回调这里 Scan to a file, call back here
-	Log.d("ScanFile1","$file")
-}
-scanFile1.setCompleteCallBack{
-     Log.d("ScanFile1","ScanFile1 Complete")
-}
-scanFile1.startAsyncScan() //不同于第一种使用,使用此方式单独执行  Different from the first use，Use this method to execute alone
 
-//设置扫描2的回调 The second scan do alone
-scanFile2.setScanningCallBack { file->   //不同于第一种使用 Different from the first use
-	//每扫描到一个文件，就回调这里 Scan to a file, call back here
-	Log.d("ScanFile2","$file")
-}
-scanFile2.setCompleteCallBack{ 
-     Log.d("ScanFile2","ScanFile2 Complete")
-}
-scanFile2.startAsyncScan()  //不同于第一种使用,使用此方式单独执行 Different from the first use，Use this method to execute alone
+val scanFileOne = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+val scanFileTwo = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
+
+var mScanTogetherManager = ScanFileUtil.ScanTogetherManager()
+
+scanFileOne.setScanFileListener(object : ScanFileUtil.ScanFileListener {
+        
+            override fun scanBegin() {
+                oneFileList.clear()
+            }
+
+            override fun scanComplete(timeConsuming: Long) {
+                //   处理你的扫描结果 Process your scan results
+                //   Log.d("tow Scan",oneFileList.toString())
+           Toast.makeText(this, "one scan end 扫描完成", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun scanningCallBack(file: File) {
+                oneFileList.add(file)//保存扫描数据 Save scan data
+                //如果有耗时操作和计算操作，会影响扫描速度，Log也不要写在这里
+                // if there are time-consuming operations and calculation operations,
+                // it will affect the scanning speed，Log also don't write here
+                Log.d("one Scan", "${file.absolutePath}")
+            }
+
+        })
+scanFileOne.startAsyncScan()
+
+
+scanFileTwo = ScanFileUtil(ScanFileUtil.externalStorageDirectory,
+            object : ScanFileUtil.ScanFileListener {
+       
+                override fun scanBegin() {
+                    twoFileList.clear()
+                }
+
+                override fun scanComplete(timeConsuming: Long) {
+                    //   处理你的扫描结果 Process your scan results
+                    //   Log.d("tow Scan",twoFileList.toString())
+                   Toast.makeText(this, "two scan end 扫描完成", Toast.LENGTH_SHORT).show()
+                }
+
+                override fun scanningCallBack(file: File) {
+                    twoFileList.add(file)//保存扫描数据 Save scan data
+                    // 如果有耗时操作和计算操作，会影响扫描速度，Log也不要写在这里
+                    // if there are time-consuming operations and calculation operations,
+                    // it will affect the scanning speed，Log also don't write here
+                    Log.d("two Scan", "${file.absolutePath}}")
+                }
+            })
+scanFileTwo.startAsyncScan()
 
 
 //======================================================
-//or 或者同时执行 first and second begin together
-//scanFile1.startAsyncScan() //不用调用这个方法 Do not call this method
-//scanFile2.startAsyncScan() //不用调用这个方法 Do not call this method
-
 //使用这个方法同时开启多个扫描任务 Use this method to start multiple scanning tasks at the same time
-ScanFileUtil.scanTogether(scanFile1,scanFile2){
-    //两个任务全部完成后在UI回调此方法
-    //After both tasks are completed, call back this method in UI
-    Toast.makeText(this, "ScanFile1 scanFile2 all completed", Toast.LENGTH_LONG).show()
-}
-
-注意：使用第一种方式扫描文件，不可以调用这个方法——‘scanTogether’
-Be careful:The first way is not to call this method ——‘scanTogether’
-
+    mScanTogetherManager.scan(scanFileOne, scanFileTwo) {
+            Log.d("Scan", "one scan and two scan end,扫描1 和 扫描2 完成")
+            Toast.makeText(
+                applicationContext,
+                "one scan and two scan end,扫描1 和 扫描2 完成",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
 ```
 
 
 
-### 文件扫描过滤Builder
-
-### File scan filter builder
+##### 文件扫描过滤Builder/ File scan filter builder
 
 ```kotlin
 //FileFilterBuilder
@@ -214,9 +251,9 @@ fun scanZipFiles()
 fun build(): FilenameFilter
 ```
 
-#### 如何使用FileFilterBuilder
 
-#### How to use FileFilterBuilder
+
+##### 如何使用FileFilterBuilder\How to use FileFilterBuilder
 
 ```kotlin
 val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)

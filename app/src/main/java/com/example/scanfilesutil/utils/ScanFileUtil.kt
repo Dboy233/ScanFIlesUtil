@@ -421,6 +421,7 @@ class ScanFileUtil {
 
         /**
          * 取消同时执行的扫描任务
+         * Cancel simultaneous scan tasks
          */
         fun cancel() {
             //先取消当前的任务
@@ -434,7 +435,7 @@ class ScanFileUtil {
         }
 
         /**
-         * 清空任务列表
+         * 清空任务列表 Clear the task list
          */
         fun clear() {
             mTogetherJob.clear()
@@ -720,16 +721,18 @@ class ScanFileUtil {
     interface ScanFileListener {
 
         /**
-         * 扫描开始的时候
+         * 扫描开始的时候 描述
          */
         fun scanBegin()
 
         /**
+         * 扫描完成回调 Scan completion callback
          * @param timeConsuming 耗时
          */
         fun scanComplete(timeConsuming: Long)
 
         /**
+         * 扫描到文件时回调，每扫描到一个文件触发一次/Callback when a file is scanned, triggered every time a file is scanned
          * @param file 扫描的文件
          */
         fun scanningCallBack(file: File)
