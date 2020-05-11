@@ -47,9 +47,9 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 }
 ```
 
-##### API介绍/API introduction
+##### function/function introduction
 
-`ScanFileUtil` Api
+`ScanFileUtil` function
 
 | APi                                                          | describe                                                     |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -62,7 +62,7 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 | `setScanningFilter(filter: FilenameFilter?)`                 | 扫描时过滤规则，不建议使用此方法，用`setCallBackFilter()`代替。<br />Filter rule during scanning, not recommended，<br />Replace with `setCallBackFilter()` |
 | `stop()`                                                     | 停止扫描，Stop scanning                                      |
 
-`ScanFileListener` method
+`ScanFileListener` function
 
 | 接口方法/Interface function             | 描述/description                                             |
 | --------------------------------------- | ------------------------------------------------------------ |
@@ -72,7 +72,7 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 
 
 
-`ScanTogetherManager` API
+`ScanTogetherManager` function
 
 | 方法/function                                                | 描述/description                                      |
 | ------------------------------------------------------------ | ----------------------------------------------------- |
