@@ -270,17 +270,13 @@ var fileFilterBuilder= ScanFileUtil.FileFilterBuilder().apply {
 		return	FileUtils.getFileLength(dir) != 0L
 	})
 	addCustomFilter(FilenameFilter { dir, name ->
-		//.....other Filter
+		//.....自定义规则/other Filter
 	})
 
 }.build()
 
-scanFile.apply {
-    setScanLevel(2)
-    setCallBackFilter(fileFilterBuilder)//use
-}
-scanFile.startAsyncScan{
-    Log.d("ScanFile","$it")
-}
+scanFile.setCallBackFilter(fileFilterBuilder)//<<<<<<< 使用/Use 
+
+scanFile.startAsyncScan()
 ```
 
