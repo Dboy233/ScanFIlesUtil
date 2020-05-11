@@ -86,9 +86,10 @@ class MainActivity : AppCompatActivity() {
 
             override fun scanningCallBack(file: File) {
                 oneFileList.add(file)//保存扫描数据 Save scan data
-                //以下代码不推荐 避免耗时操作，计算操作，会影响扫描速度
-                //The following code is not recommended to avoid time-consuming operations,
-                // calculation operations will affect the scanning speed
+                //以下代码不推荐, 如果有耗时操作和计算操作，会影响扫描速度，Log也不要写在这里
+                //The following code is not recommended,
+                // if there are time-consuming operations and calculation operations,
+                // it will affect the scanning speed，Log also don't write here
                 if (i == 20) {
                     i = 0
                     //20次回调一次，减少页面刷新频次
@@ -127,9 +128,10 @@ class MainActivity : AppCompatActivity() {
 
                 override fun scanningCallBack(file: File) {
                     twoFileList.add(file)//保存扫描数据 Save scan data
-                    //以下代码不推荐 避免耗时操作，计算操作，会影响扫描速度，尽量只执行保存文件的操作
-                    //The following code is not recommended to avoid time-consuming operations,
-                    // calculation operations will affect the scanning speed，Only save the file
+                    //以下代码不推荐, 如果有耗时操作和计算操作，会影响扫描速度，Log也不要写在这里
+                    //The following code is not recommended,
+                    // if there are time-consuming operations and calculation operations,
+                    // it will affect the scanning speed，Log also don't write here
                     if (i == 20) {
                         i = 0
                         GlobalScope.launch(Dispatchers.Main) {
@@ -170,8 +172,6 @@ class MainActivity : AppCompatActivity() {
      * 两个任务一次扫描
      */
     fun scanTogether(view: View) {
-        oneFileList.clear()
-        twoFileList.clear()
         mScanTogetherManager.scan(scanFileOne, scanFileTwo) {
             Log.d("Scan", "one scan and two scan end,扫描1 和 扫描2 完成")
             Toast.makeText(

@@ -24,18 +24,31 @@ import java.lang.Deprecated
  *                                   scanApkFiles()
  *                             }.build())
  *
- *      //设置完成扫描回调,Set scan completion callback
- *      scanFile.setCompleteCallBack{
- *          Log.d("Scan","scan complete")
- *      }
+ *   scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
  *
- *      //设置扫描时回调,Set callback when scanning
- *      scanFileTwo.setScanningCallBack{
- *           Log.d("Scan", "${it.absolutePath}  size ${FileUtils.getFileLength(it)}  ")
- *      }
+ *           /**
+ *            * 扫描开始的时候
+ *            */
+ *           fun scanBegin(){
+ *
+ *           }
+ *
+ *           /**
+ *            * @param timeConsuming 耗时
+ *            */
+ *           fun scanComplete(timeConsuming: Long){
+ *
+ *           }
+ *           /**
+ *             *@param file 扫描的文件,Scanned file
+ *             */
+ *          fun scanningCallBack(file: File){
+ *
+ *          }
+ *    })
  *
  *      //开始扫描 Start scanning
- *      scanFileTwo.startAsyncScan()
+ *      scanFile.startAsyncScan()
  * }
  *
  */
@@ -719,7 +732,7 @@ class ScanFileUtil {
         /**
          * @param file 扫描的文件
          */
-          fun scanningCallBack(file: File)
+        fun scanningCallBack(file: File)
     }
 
 }
