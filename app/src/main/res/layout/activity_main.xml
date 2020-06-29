@@ -58,22 +58,6 @@
                 android:text="Stop   Scan 停止扫描"
                 android:textAllCaps="false" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="如果点击 【one two Scan together 1 , 2 一起扫描】 按钮 app崩溃 请先使用 【one Scan file 扫描文件 1】按钮。 初始化它的回调接口"
-                android:textColor="#333"
-                android:textSize="24sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="If you click [one two Scan together 1 , 2 一起扫描] button . app crash! Please use the [one Scan file] button. Initializes its callback "
-                android:textColor="#333"
-                android:textSize="24sp" />
-
 
         </LinearLayout>
     </LinearLayout>
