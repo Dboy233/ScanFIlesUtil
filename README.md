@@ -8,6 +8,9 @@
 
  [`Submit issues if you have questions or bugs,I will modify it in time.`](https://github.com/Dboy233/ScanFIlesUtil/issues)
 
+
+#### [原理解析 https://juejin.im/post/5eb903355188256d7e066e90](https://juejin.im/post/5eb903355188256d7e066e90)
+ 
 ##### 使用方式：
 
 粘贴[ScanFileUtil.kt](https://github.com/Dboy233/ScanFIlesUtil/blob/master/app/src/main/java/com/example/scanfilesutil/utils/ScanFileUtil.kt)使用
