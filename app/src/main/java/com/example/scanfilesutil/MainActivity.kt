@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity() {
                 //   处理你的扫描结果 Process your scan results
                 //   Log.d("tow Scan",oneFileList.toString())
                 scan_info_tv.text =
-                    " 扫描任务1完成 one scan complete ; time:${timeConsuming}"
+                    " 扫描任务1完成 one scan complete ; time:${timeConsuming} size {${oneFileList.size}}"
 //            Toast.makeText(this, "one scan end 扫描完成", Toast.LENGTH_SHORT).show()
             }
 
@@ -122,7 +122,7 @@ class MainActivity : AppCompatActivity() {
                     //   处理你的扫描结果 Process your scan results
                     //   Log.d("tow Scan",twoFileList.toString())
                     scan_two_info_tv.text =
-                        " 扫描任务2完成 tow scan complete ;time:${timeConsuming}"
+                        " 扫描任务2完成 tow scan complete ;time:${timeConsuming} size${twoFileList.size}"
                     // Toast.makeText(this, "two scan end 扫描完成", Toast.LENGTH_SHORT).show()
                 }
 

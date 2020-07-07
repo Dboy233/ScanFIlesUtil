@@ -5,6 +5,7 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.io.FilenameFilter
 import java.lang.Deprecated
+import java.util.*
 
 /**
  * 扫描文件工具
@@ -12,8 +13,8 @@ import java.lang.Deprecated
  *
  * @author Dboy
  * @作者： Dboy
- * @see  https://github.com/Dboy233/ScanFIlesUtil
- * @param targetSdkVersion  targetSdkVersion <= 28 ; 设置你的gradle版本 / Set your gradle version
+ * @see  'https://github.com/Dboy233/ScanFIlesUtil'
+ * @see 'targetSdkVersion'  targetSdkVersion <= 28 ; 设置你的gradle版本 / Set your gradle version
  * @sample {
  *    val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
  *
@@ -52,16 +53,17 @@ import java.lang.Deprecated
  * }
  *
  */
+@Suppress("unused")
 class ScanFileUtil {
 
     companion object {
         //手机外部存储根目录 Mobile storage root directory
-        val externalStorageDirectory by lazy {
+        val externalStorageDirectory: String by lazy {
             Environment.getExternalStorageDirectory().absolutePath
         }
 
         //手机app缓存存放路径 Mobile app cache storage path
-        val android_app_data_folder by lazy {
+        val android_app_data_folder: String by lazy {
             "$externalStorageDirectory/Android/data"
         }
     }
@@ -130,7 +132,7 @@ class ScanFileUtil {
 
     /**
      * @param rootPath 扫描的路径 Scanning path
-     * @param complete 完成回调 == completeCallBack
+     * @param scanFileListener 完成回调接口
      */
     constructor(rootPath: String, scanFileListener: ScanFileListener) {
         this.mRootPath = rootPath.trimEnd { it == '/' }
@@ -202,9 +204,6 @@ class ScanFileUtil {
      * 异步扫描文件， 递归调用
      * Scan files asynchronously, call recursively
      * @param dirOrFile 要扫描的文件 或 文件夹;The file or folder to scan
-     * @param callback 文件回调 再子线程中 不可操作ui 将扫描到的文件通过callback调用;
-     *                  File callback In the sub-thread,
-     *                  inoperable ui will call the scanned file through callback
      */
     private fun asyncScan(dirOrFile: File) {
         plusCoroutineSize()
@@ -366,7 +365,8 @@ class ScanFileUtil {
     /**
      * 一起扫描管理类，
      * 提供扫描和停止方法。
-     * Scanning management class together, providing scanning and stopping methods.
+     *
+     * Used to manage scanning together, providing scanning and stopping methods.
      */
     class ScanTogetherManager {
         /**
@@ -444,25 +444,26 @@ class ScanFileUtil {
 
     /**
      * 过滤器构造器
+     * Filter builder
      */
     class FileFilterBuilder {
         /**
          * 添加自定义filter规则 集合
          * Add custom filter rules collection
          */
-        val customFilterList: MutableList<FilenameFilter> = mutableListOf<FilenameFilter>()
+        private val customFilterList: MutableList<FilenameFilter> = mutableListOf()
 
         /**
          * 文件类型&文件后缀 扫描过滤规则 集合
          * File type & file suffix Scan filter rules Collection
          */
-        val mFilseFilterSet: MutableSet<String> = hashSetOf()
+        private val mFilseFilterSet: MutableSet<String> = hashSetOf()
 
         /**
          * 扫描名字像它的 集合
          * Scan the name like its collection
          */
-        val mNameLikeFilterSet: MutableSet<String> = hashSetOf()
+        private val mNameLikeFilterSet: MutableSet<String> = hashSetOf()
 
         /**
          * 扫描名字不像它的文件 集合,
@@ -470,7 +471,7 @@ class ScanFileUtil {
          * Scan a collection of files whose name is not like it,
          * that is, do not scan a collection of files whose name is like this
          */
-        val mNameNotLikeFilterSet: MutableSet<String> = hashSetOf()
+        private val mNameNotLikeFilterSet: MutableSet<String> = hashSetOf()
 
         /**
          * 是否扫描隐藏文件 true扫描 false不扫描
@@ -479,11 +480,13 @@ class ScanFileUtil {
 
         /**
          * 只要扫描文件
+         * Just scan the file
          */
         private var isOnlyFile = false
 
         /**
          * 只扫描文件夹
+         * Scan folders only
          */
         private var isOnlyDir = false
 
@@ -506,6 +509,7 @@ class ScanFileUtil {
 
         /**
          * 只要扫描文件
+         * Just scan the file
          */
         fun onlyScanFile() {
             isOnlyFile = true
@@ -516,7 +520,7 @@ class ScanFileUtil {
          * Scan names like its files or folders
          */
         fun scanNameLikeIt(like: String) {
-            mNameLikeFilterSet.add(like.toLowerCase())
+            mNameLikeFilterSet.add(like.toLowerCase(Locale.getDefault()))
         }
 
         /**
@@ -526,11 +530,12 @@ class ScanFileUtil {
          * That is, don't scan files with names like this
          */
         fun scanNameNotLikeIt(like: String) {
-            mNameNotLikeFilterSet.add(like.toLowerCase())
+            mNameNotLikeFilterSet.add(like.toLowerCase(Locale.getDefault()))
         }
 
         /**
          * 扫描TxT文件
+         * Scan text files only
          */
         fun scanTxTFiles() {
             mFilseFilterSet.add("txt")
@@ -622,7 +627,7 @@ class ScanFileUtil {
             //相似名字获取过滤
             if (mNameLikeFilterSet.isNotEmpty()) {
                 mNameLikeFilterSet.map {
-                    if (name.toLowerCase().contains(it)) {
+                    if (name.toLowerCase(Locale.getDefault()).contains(it)) {
                         return true
                     }
                 }
@@ -638,7 +643,7 @@ class ScanFileUtil {
             //名字不相似顾虑
             if (mNameNotLikeFilterSet.isNotEmpty()) {
                 mNameNotLikeFilterSet.map {
-                    if (name.toLowerCase().contains(it)) {
+                    if (name.toLowerCase(Locale.getDefault()).contains(it)) {
                         return false
                     }
                 }
@@ -651,15 +656,30 @@ class ScanFileUtil {
          * 检查文件后缀过滤规则 既文件类型过滤规则
          */
         private fun checkSuffixFilter(name: String): Boolean {
-            if (mFilseFilterSet.isNotEmpty()) {
+            return if (mFilseFilterSet.isNotEmpty()) {
                 //获取文件后缀
                 val suffix: String =
                     name.substring(name.indexOfLast { it == '.' } + 1, name.length)
-                        .toLowerCase()
-                return mFilseFilterSet.contains(suffix)
+                        .toLowerCase(Locale.getDefault())
+                //return 是否包含这个文件
+                mFilseFilterSet.contains(suffix)
             } else {
-                return true
+                //如果没有设置这个规则，全部默认为true 全部通过
+                true
             }
+        }
+
+        /**
+         * 重置构建器
+         */
+        fun resetBuild() {
+            mFilseFilterSet.clear()
+            mNameLikeFilterSet.clear()
+            mNameNotLikeFilterSet.clear()
+            customFilterList.clear()
+            isScanHiddenFiles = true
+            isOnlyDir = false
+            isOnlyFile = false
         }
 
         /**
