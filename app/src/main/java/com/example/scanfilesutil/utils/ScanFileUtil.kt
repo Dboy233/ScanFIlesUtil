@@ -741,18 +741,25 @@ class ScanFileUtil {
     interface ScanFileListener {
 
         /**
+         * 在子线程回调
+         * Callback in child thread
          * 扫描开始的时候 描述
          */
         fun scanBegin()
 
         /**
+         * 在主线程回调
+         * Callback in main thread
          * 扫描完成回调 Scan completion callback
          * @param timeConsuming 耗时
          */
         fun scanComplete(timeConsuming: Long)
 
         /**
-         * 扫描到文件时回调，每扫描到一个文件触发一次/Callback when a file is scanned, triggered every time a file is scanned
+         * 在子线程回调
+         * 扫描到文件时回调，每扫描到一个文件触发一次
+         * Callback in child thread
+         * Callback when a file is scanned, triggered every time a file is scanned
          * @param file 扫描的文件
          */
         fun scanningCallBack(file: File)
