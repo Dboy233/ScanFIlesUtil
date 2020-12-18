@@ -12,9 +12,9 @@
 
 ##### 使用方式：
 
-粘贴[ScanFileUtil.kt](https://github.com/Dboy233/ScanFIlesUtil/blob/master/app/src/main/java/com/example/scanfilesutil/utils/ScanFileUtil.kt)使用
+粘贴 [ScanFileUtil.kt](https://github.com/Dboy233/ScanFIlesUtil/blob/flow-scan/app/src/main/java/com/example/scanfilesutil/utils/ScanFileUtil.kt )使用
 
-Paste [ScanFileUtil.kt](https://github.com/Dboy233/ScanFIlesUtil/blob/master/app/src/main/java/com/example/scanfilesutil/utils/ScanFileUtil.kt) to use
+Paste [ScanFileUtil.kt](https://github.com/Dboy233/ScanFIlesUtil/blob/flow-scan/app/src/main/java/com/example/scanfilesutil/utils/ScanFileUtil.kt) to use
 
 ```kotlin
 	//扫描任务
