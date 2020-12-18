@@ -1,8 +1,8 @@
-# ScanFileUtil
+# ScanFileUtil - Flow
 
- 使用协程扫描手机文件，可用来扫描垃圾文件，缓存文件，应用缓存，视频文件，音频文件，文本文件，等等.
+ 使用协程`Flow`扫描手机文件，可用来扫描垃圾文件，缓存文件，应用缓存，视频文件，音频文件，文本文件，等等.
 
- Using coroutine program to scan Android mobile files can be used to scan junk files, cache files, application cache, video files, audio files, text files, etc.
+ Using coroutine `Flow` program to scan Android mobile files can be used to scan junk files, cache files, application cache, video files, audio files, text files, etc.
 
  [`有疑问或者bug 提交 issues,我会及时休整`](https://github.com/Dboy233/ScanFIlesUtil/issues)
 
