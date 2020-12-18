@@ -62,9 +62,6 @@ class MainActivity : AppCompatActivity() {
         scanFileOne.apply {
             setCallBackFilter(ScanFileUtil.FileFilterBuilder().apply {
                 onlyScanDir()
-                addCustomFilter(FilenameFilter { dir, name ->
-                    FileUtils.getDirLength(dir) == 0L
-                })
             }.build())
 
         }
@@ -147,8 +144,7 @@ class MainActivity : AppCompatActivity() {
         //设置过滤规则
         scanFileTwo.setCallBackFilter(ScanFileUtil.FileFilterBuilder()
             .apply {
-                onlyScanFile()
-                scanApkFiles()
+                scanDocumentFiles()
             }
             .build())
     }
@@ -185,10 +181,16 @@ class MainActivity : AppCompatActivity() {
     /**
      * 停止所有扫描任务
      */
-    fun stopScan(view: View) {
+    fun stopScan(view: View?) {
         mScanTogetherManager.cancel()
         scanFileOne.stop()
         scanFileTwo.stop()
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopScan(null)
     }
 
 }
