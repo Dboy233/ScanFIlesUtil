@@ -1,10 +1,12 @@
 package com.example.scanfilesutil.utils
 
 import android.os.Environment
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FilenameFilter
-import java.lang.Deprecated
 import java.util.*
 
 /**
@@ -15,44 +17,8 @@ import java.util.*
  * @作者： Dboy
  * @see  'https://github.com/Dboy233/ScanFIlesUtil'
  * @see 'targetSdkVersion'  targetSdkVersion <= 28 ; 设置你的gradle版本 / Set your gradle version
- * @sample {
- *    val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
- *
- *          //设置过滤规则 Set up filter rules
- *          scanFile.setCallBackFilter(
- *                  ScanFileUtil.FileFilterBuilder() .apply {
- *                                  onlyScanFile()
- *                                   scanApkFiles()
- *                             }.build())
- *
- *   scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
- *
- *           /**
- *            * 扫描开始的时候
- *            */
- *           fun scanBegin(){
- *
- *           }
- *
- *           /**
- *            * @param timeConsuming 耗时
- *            */
- *           fun scanComplete(timeConsuming: Long){
- *
- *           }
- *           /**
- *             *@param file 扫描的文件,Scanned file
- *             */
- *          fun scanningCallBack(file: File){
- *
- *          }
- *    })
- *
- *      //开始扫描 Start scanning
- *      scanFile.startAsyncScan()
- * }
- *
  */
+
 @Suppress("unused")
 class ScanFileUtil {
 
@@ -99,19 +65,6 @@ class ScanFileUtil {
     private var mScanLevel = -1L
 
     /**
-     * 协程扫描任务
-     * Coroutine scan task
-     */
-    private var mCoroutineScope: CoroutineScope? = null
-
-    /**
-     * 协程递归使用次数记录 每次递归调用都会产程一个新的进程 进程执行完成 递减1
-     * Correlation recursion usage count record Each recursive call will produce a new process.
-     * Process execution is completed Decrement by 1
-     */
-    private var mCoroutineSize = 0
-
-    /**
      * 扫描用时
      * Scan time
      */
@@ -124,19 +77,23 @@ class ScanFileUtil {
     private var mScanFileListener: ScanFileListener? = null
 
     /**
+     * flow 扫描任务
+     */
+    private var mJobFlowScan: Flow<File>? = null
+
+    /**
+     * 当手动调用 stop() 函数的时候是否 在之后调用onComplete()函数
+     * 是否开启主动停止后触发完成回调
+     *
+     */
+    var enableCallComplete = false
+
+
+    /**
      * @param rootPath 扫描的路径 Scanning path
      */
     constructor(rootPath: String) {
         this.mRootPath = rootPath.trimEnd { it == '/' }
-    }
-
-    /**
-     * @param rootPath 扫描的路径 Scanning path
-     * @param scanFileListener 完成回调接口
-     */
-    constructor(rootPath: String, scanFileListener: ScanFileListener) {
-        this.mRootPath = rootPath.trimEnd { it == '/' }
-        mScanFileListener = scanFileListener
     }
 
     /**
@@ -160,7 +117,11 @@ class ScanFileUtil {
      */
     fun stop() {
         isStop = true
-        mCoroutineScope?.cancel()
+        mJobFlowScan?.cancellable()
+    }
+
+    fun enableStopCallComplete(enable: Boolean) {
+        enableCallComplete = enable
     }
 
     /**
@@ -169,118 +130,94 @@ class ScanFileUtil {
      */
     fun getScanTimeConsuming() = mScanTime
 
-
     /**
      * 开始异步扫描文件
      * Start scanning files asynchronously
      */
-    fun startAsyncScan() {
+    fun startScan() {
+        //还没停止不允许重复调用
         if (!isStop) {
             return
         }
         isStop = false
-        mCoroutineSize = 0
-
         //检查路径的可用性
         //Check path availability
         val file = File(mRootPath)
         if (!file.exists()) {
             return
         }
-        //如果协程是空的 或者已经结束过了，重新实例化协程
-        //If the coroutine is empty or has ended, re-instantiate the coroutine
-        if (mCoroutineScope == null || mCoroutineScope?.isActive == false) {
-            mCoroutineScope = CoroutineScope(Dispatchers.IO)
+        mJobFlowScan = flow<File> {
+            recursionScan(file, this)
+            onComplete()
+        }.onStart {
+            mScanFileListener?.onBegin()
+            mScanTime = System.currentTimeMillis()
+        }.catch {
+            mScanFileListener?.onError()
+        }.buffer(100).flowOn(Dispatchers.IO)
+        //在主线程回调
+        GlobalScope.launch(Dispatchers.Main) {
+            mJobFlowScan?.collect {
+                mScanFileListener?.onFile(it)
+            }
         }
-        mScanTime = System.currentTimeMillis()
-        mScanFileListener?.scanBegin()
-        //开始扫描
-        //Start scanning
-        asyncScan(file)
     }
 
+    /**
+     * 完成
+     */
+    private fun onComplete() {
+        if (isStop && !enableCallComplete) {
+            return
+        }
+        GlobalScope.launch(Dispatchers.Main) {
+            mScanTime = System.currentTimeMillis() - mScanTime
+            mScanFileListener?.onComplete(mScanTime)
+            isStop = true
+        }
+    }
 
     /**
-     * 异步扫描文件， 递归调用
-     * Scan files asynchronously, call recursively
+     *
+     * 递归扫描
+     * Recursive scan
      * @param dirOrFile 要扫描的文件 或 文件夹;The file or folder to scan
      */
-    private fun asyncScan(dirOrFile: File) {
-        plusCoroutineSize()
-        //将任务添加到列队中 Add tasks to the queue
-        mCoroutineScope?.launch(Dispatchers.IO) {
-            //扫描路径层级判断 Scan path level judgment
-            if (checkLevel(dirOrFile)) {
-                checkCoroutineSize()
-                return@launch
-            }
-
-            //检查是否是文件 是文件就直接回调 返回true
-            //Check whether it is a file or a file, and call back directly to return true
-            if (dirOrFile.isFile) {
-                if (filterFile(dirOrFile)) {
-                    mScanFileListener?.scanningCallBack(dirOrFile)
-                }
-                checkCoroutineSize()
-                return@launch
-            }
-            //获取文件夹中的文件集合
-            //Get a collection of files in a folder
-            val rootFile = getFilterFilesList(dirOrFile)
-            //遍历文件夹
-            //Get a collection of files in a folder
-            rootFile?.map {
-                //如果是文件夹-回调, 调用自己,再遍历扫描
-                //If it is a folder-callback, call yourself and then traverse the scan
-                if (it.isDirectory) {
-                    if (filterFile(it)) {
-                        mScanFileListener?.scanningCallBack(dirOrFile)
-                    }
-                    //再次调用此方法
-                    //Call this method again
-                    asyncScan(it)
-                } else {
-                    //是文件,回调,验证过滤规则
-                    //Is a file, callback, verification filter rules
-                    if (filterFile(it)) {
-                        mScanFileListener?.scanningCallBack(dirOrFile)
-                    }
-                }
-            }
-            checkCoroutineSize()
-            return@launch
+    private suspend fun recursionScan(dirOrFile: File, flow: FlowCollector<File>) {
+        //扫描路径层级判断 Scan path level judgment
+        if (checkLevel(dirOrFile)) {
+            return
         }
-    }
-
-    /**
-     * 增加一次协程使用次数
-     * Increase the use of coroutines
-     */
-    @Synchronized
-    private fun plusCoroutineSize() {
-        mCoroutineSize++
-    }
-
-    /**
-     * 检查协程使用次数 减少一次
-     * 如果mCoroutineSize==0说明已经扫描完了
-     * Check the usage of coroutine. Decrease it once.
-     * If mCoroutineSize == 0, it means it has been scanned.
-     */
-    @Synchronized
-    private fun checkCoroutineSize() {
-        mCoroutineSize--
-        //如果mCoroutineSize==0,说明协程全部执行完毕，可以回调完成方法
-        //If m Coroutine Size == 0, it means that all coroutines
-        // have been executed and you can call back the completion
-        if (mCoroutineSize == 0) {
-            isStop = true
-            mCoroutineScope?.launch(Dispatchers.Main) {
-                mScanTime = System.currentTimeMillis() - mScanTime
-                mScanFileListener?.scanComplete(mScanTime)
-                mCoroutineScope?.cancel()
+        //检查是否是文件 是文件就直接回调 返回true
+        //Check whether it is a file or a file, and call back directly to return true
+        if (dirOrFile.isFile) {
+            if (filterFile(dirOrFile)) {
+                flow.emit(dirOrFile)
             }
-
+            return
+        }
+        //获取文件夹中的文件集合
+        //Get a collection of files in a folder
+        val rootFile = getFilterFilesList(dirOrFile)
+        //遍历文件夹
+        //Get a collection of files in a folder
+        rootFile?.map {
+            //如果是文件夹-回调, 调用自己,再遍历扫描
+            //If it is a folder-callback, call yourself and then traverse the scan
+            if (it.isDirectory) {
+                if (filterFile(it)) {
+                    flow.emit(dirOrFile)
+                }
+                //再次调用此方法
+                //Call this method again
+                recursionScan(it, flow)
+            } else {
+                //是文件,回调,验证过滤规则
+                //Is a file, callback, verification filter rules
+                if (filterFile(it)) {
+                    flow.emit(dirOrFile)
+                }
+            }
         }
     }
 
@@ -316,18 +253,6 @@ class ScanFileUtil {
     }
 
     /**
-     * 获取扫描任务，
-     * 不要手动调用此方法，
-     * 使用ScanTogetherManager().scan()时自动调用此方法。
-     *
-     *  To obtain a scan task, do not call this method manually.
-     *  This method is automatically called when ScanTogetherManager().Scan() is used.
-     */
-    private fun getScanningTask(): CoroutineScope? {
-        return mCoroutineScope
-    }
-
-    /**
      *  文件通过callback返回结果时过滤规则
      *  Filter rules when the file returns results through callback
      *  @param filter 使用FileFilterBuilder设置过滤规则，Use File Filter Builder to set filter rules
@@ -344,7 +269,7 @@ class ScanFileUtil {
      * and its subfolders will not be scanned
      * @Deprecated use {@link setCallBackFilter}
      */
-    @Deprecated
+    @Deprecated("Use setCallBackFilter")
     fun setScanningFilter(filter: FilenameFilter?) {
         this.mScanFilter = filter
     }
@@ -362,85 +287,6 @@ class ScanFileUtil {
         }
     }
 
-    /**
-     * 一起扫描管理类，
-     * 提供扫描和停止方法。
-     *
-     * Used to manage scanning together, providing scanning and stopping methods.
-     */
-    class ScanTogetherManager {
-        /**
-         * 要一起扫描的任务集合Set
-         * Set of tasks to scan together
-         */
-        private var mTogetherJob = mutableSetOf<ScanFileUtil>()
-
-        /**
-         * 检查任务是否完成的进程
-         * Check whether the task is completed
-         */
-        private var launch: Job? = null
-
-        /**
-         * 开始扫描
-         * Start scanning
-         * @param arrayOfScanFileUtils 扫描任务们 Scanning tasks
-         * @param allCompleteCallBack 全部完成回调
-         */
-        fun scan(vararg arrayOfScanFileUtils: ScanFileUtil?, allCompleteCallBack: () -> Unit) {
-            //如果任务已经开始了不允许再次执行和调用
-            if (launch != null && launch?.isActive == true) {
-                return
-            }
-            //清空上次执行列表
-            mTogetherJob.clear()
-            //添加这次执行的任务队列
-            arrayOfScanFileUtils.map {
-                it?.apply {
-                    mTogetherJob.add(this)
-                }
-            }
-            //开启任务 Start task
-            launch = GlobalScope.launch(Dispatchers.IO) {
-                //执行扫描
-                mTogetherJob.map {
-                    it.stop()
-                    it.startAsyncScan()
-                }
-
-                //检查所有任务是否在运行 在运行等待运行结束
-                mTogetherJob.map {
-                    while (it.getScanningTask()?.isActive == true);
-                }
-                //所有任务都结束了在main线程 回调完成函数
-                withContext(Dispatchers.Main) {
-                    allCompleteCallBack()
-                }
-            }
-        }
-
-        /**
-         * 取消同时执行的扫描任务
-         * Cancel simultaneous scan tasks
-         */
-        fun cancel() {
-            //先取消当前的任务
-            launch?.cancel()
-            //依次取消同行的任务
-            for (scanFileUtil in mTogetherJob) {
-                scanFileUtil.stop()
-            }
-            //清空任务列表
-            mTogetherJob.clear()
-        }
-
-        /**
-         * 清空任务列表 Clear the task list
-         */
-        fun clear() {
-            mTogetherJob.clear()
-        }
-    }
 
     /**
      * 过滤器构造器
@@ -495,32 +341,36 @@ class ScanFileUtil {
          * 添加自定义filter规则
          * Add custom filter rule
          */
-        fun addCustomFilter(filter: FilenameFilter) {
+        fun addCustomFilter(filter: FilenameFilter): FileFilterBuilder {
             customFilterList.add(filter)
+            return this
         }
 
         /**
          * 只扫描文件夹
          * Scan folders only
          */
-        fun onlyScanDir() {
+        fun onlyScanDir(): FileFilterBuilder {
             isOnlyDir = true
+            return this
         }
 
         /**
          * 只要扫描文件
          * Just scan the file
          */
-        fun onlyScanFile() {
+        fun onlyScanFile(): FileFilterBuilder {
             isOnlyFile = true
+            return this
         }
 
         /**
          * 扫描名字像它的文件或者文件夹
          * Scan names like its files or folders
          */
-        fun scanNameLikeIt(like: String) {
+        fun scanNameLikeIt(like: String): FileFilterBuilder {
             mNameLikeFilterSet.add(like.toLowerCase(Locale.getDefault()))
+            return this
         }
 
         /**
@@ -529,32 +379,36 @@ class ScanFileUtil {
          * Scan name is not like its file
          * That is, don't scan files with names like this
          */
-        fun scanNameNotLikeIt(like: String) {
+        fun scanNameNotLikeIt(like: String): FileFilterBuilder {
             mNameNotLikeFilterSet.add(like.toLowerCase(Locale.getDefault()))
+            return this
         }
 
         /**
          * 扫描TxT文件
          * Scan text files only
          */
-        fun scanTxTFiles() {
+        fun scanTxTFiles(): FileFilterBuilder {
             mFilseFilterSet.add("txt")
+            return this
         }
 
         /**
          * 不扫描隐藏文件
          * Don't scan hidden files
          */
-        fun notScanHiddenFiles() {
+        fun notScanHiddenFiles(): FileFilterBuilder {
             isScanHiddenFiles = false
+            return this
         }
 
         /**
          *  扫描apk文件
          * Scan APK files
          */
-        fun scanApkFiles() {
+        fun scanApkFiles(): FileFilterBuilder {
             mFilseFilterSet.add("apk")
+            return this
         }
 
 
@@ -562,62 +416,68 @@ class ScanFileUtil {
          * 扫描log文件 temp文件
          * Scan log file temp file
          */
-        fun scanLogFiles() {
+        fun scanLogFiles(): FileFilterBuilder {
             mFilseFilterSet.add("log")
             mFilseFilterSet.add("temp")
+            return this
         }
 
         /**
          * 扫描文档类型文件
          */
-        fun scanDocumentFiles() {
+        fun scanDocumentFiles(): FileFilterBuilder {
             mFilseFilterSet.add("txt")
             mFilseFilterSet.add("pdf")
             mFilseFilterSet.add("doc")
             mFilseFilterSet.add("docx")
             mFilseFilterSet.add("xls")
             mFilseFilterSet.add("xlsx")
+            return this
         }
 
         /**
          * 扫描图片类型文件
          *Scan picture type file
          */
-        fun scanPictureFiles() {
+        fun scanPictureFiles(): FileFilterBuilder {
             mFilseFilterSet.add("jpg")
             mFilseFilterSet.add("jpeg")
             mFilseFilterSet.add("png")
             mFilseFilterSet.add("bmp")
             mFilseFilterSet.add("gif")
+            return this
         }
 
         /**
          * 扫描多媒体文件类型
          *Scan multimedia file type
          */
-        fun scanVideoFiles() {
+        fun scanVideoFiles(): FileFilterBuilder {
             mFilseFilterSet.add("mp4")
             mFilseFilterSet.add("avi")
             mFilseFilterSet.add("wmv")
             mFilseFilterSet.add("flv")
+            return this
         }
 
         /**
          * 扫描音频文件类型
          * Scan audio file type
          */
-        fun scanMusicFiles() {
+        fun scanMusicFiles(): FileFilterBuilder {
             mFilseFilterSet.add("mp3")
             mFilseFilterSet.add("ogg")
+            return this
         }
 
         /**
          * 扫描压缩包文件类型
          */
-        fun scanZipFiles() {
+        fun scanZipFiles(): FileFilterBuilder {
             mFilseFilterSet.add("zip")
             mFilseFilterSet.add("rar")
             mFilseFilterSet.add("7z")
+            return this
         }
 
         /**
@@ -745,7 +605,7 @@ class ScanFileUtil {
          * Callback in child thread
          * 扫描开始的时候 描述
          */
-        fun scanBegin()
+        fun onBegin()
 
         /**
          * 在主线程回调
@@ -753,7 +613,12 @@ class ScanFileUtil {
          * 扫描完成回调 Scan completion callback
          * @param timeConsuming 耗时
          */
-        fun scanComplete(timeConsuming: Long)
+        fun onComplete(timeConsuming: Long)
+
+        /**
+         * 当扫描报错
+         */
+        fun onError()
 
         /**
          * 在子线程回调
@@ -762,7 +627,27 @@ class ScanFileUtil {
          * Callback when a file is scanned, triggered every time a file is scanned
          * @param file 扫描的文件
          */
-        fun scanningCallBack(file: File)
+        fun onFile(file: File)
+    }
+
+    open class ScanFileListenerAdapter : ScanFileListener {
+
+        override fun onBegin() {
+
+        }
+
+        override fun onComplete(timeConsuming: Long) {
+
+        }
+
+        override fun onError() {
+
+        }
+
+        override fun onFile(file: File) {
+
+        }
+
     }
 
 }
