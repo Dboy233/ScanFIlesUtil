@@ -1,7 +1,8 @@
 # ScanFileUtil
 
-### 分支 flow-scan 使用协程Flow实现扫描任务，如需请切换分支至 flow-scan; 扫描速度不如组分支代码。
-### Branch flow-scan uses coroutine flow to realize the scanning task. If necessary, please switch to flow-scan; scanning speed is not as fast as main branch code.
+### 分支 [flow-scan](https://github.com/Dboy233/ScanFIlesUtil/tree/flow-scan) 使用协程Flow实现扫描任务，如需请切换分支至 [flow-scan](https://github.com/Dboy233/ScanFIlesUtil/tree/flow-scan)n; 扫描速度不如组分支代码。
+
+### Branch [flow-scan](https://github.com/Dboy233/ScanFIlesUtil/tree/flow-scan) uses coroutine flow to realize the scanning task. If necessary, please switch to [flow-scan](https://github.com/Dboy233/ScanFIlesUtil/tree/flow-scan); scanning speed is not as fast as main branch code.
 
  使用协程扫描手机文件，可用来扫描垃圾文件，缓存文件，应用缓存，视频文件，音频文件，文本文件，等等.
 
