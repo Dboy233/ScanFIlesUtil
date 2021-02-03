@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
 
         val filter = ScanFileUtil.FileFilterBuilder().onlyScanFile().build()
 
-        scanFileOne.setCallBackFilter(filter)
+        scanFileTwo.setCallBackFilter(filter)
 
         scanFileTwo.setScanFileListener(object : ScanFileUtil.ScanFileListenerAdapter() {
             var i = 0

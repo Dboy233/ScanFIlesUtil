@@ -154,7 +154,7 @@ class ScanFileUtil {
             mScanTime = System.currentTimeMillis()
         }.catch {
             mScanFileListener?.onError()
-        }.buffer(100).flowOn(Dispatchers.IO)
+        }.flowOn(Dispatchers.IO)
         //在主线程回调
         GlobalScope.launch(Dispatchers.Main) {
             mJobFlowScan?.collect {
@@ -206,7 +206,7 @@ class ScanFileUtil {
             //If it is a folder-callback, call yourself and then traverse the scan
             if (it.isDirectory) {
                 if (filterFile(it)) {
-                    flow.emit(dirOrFile)
+                    flow.emit(it)
                 }
                 //再次调用此方法
                 //Call this method again
@@ -215,7 +215,7 @@ class ScanFileUtil {
                 //是文件,回调,验证过滤规则
                 //Is a file, callback, verification filter rules
                 if (filterFile(it)) {
-                    flow.emit(dirOrFile)
+                    flow.emit(it)
                 }
             }
         }
@@ -246,9 +246,9 @@ class ScanFileUtil {
      */
     private fun filterFile(file: File): Boolean {
         return if (mCallBackFilter == null) {
-            !isStop
+            true
         } else {
-            mCallBackFilter!!.accept(file, file.name) && !isStop
+            mCallBackFilter!!.accept(file, file.name)
         }
     }
 
@@ -548,13 +548,21 @@ class ScanFileUtil {
          */
         fun build(): FilenameFilter {
             return object : FilenameFilter {
+                /**
+                 * 自定义规则是否通过
+                 */
+                var customAcceptThrough=true
+
                 override fun accept(dir: File, name: String): Boolean {
                     //先检测自定义过滤规则
-                    val customAcceptList: MutableList<Boolean> = mutableListOf()
+                    customAcceptThrough=true
                     if (customFilterList.isNotEmpty()) {
                         for (filenameFilter in customFilterList) {
                             val accept = filenameFilter.accept(dir, name)
-                            customAcceptList.add(accept)
+                            if (!accept) {
+                                customAcceptThrough=false
+                                break
+                            }
                         }
                     }
 
@@ -570,7 +578,7 @@ class ScanFileUtil {
                         return dir.isDirectory
                                 && checkNameLikeFilter(name)
                                 && checkNameNotLikeFilter(name)
-                                && (customAcceptList.isEmpty() || !customAcceptList.contains(false))
+                                && customAcceptThrough
                     }
 
                     //只扫描文件 同时应用文件扫描规则
@@ -579,14 +587,14 @@ class ScanFileUtil {
                                 && checkSuffixFilter(name)
                                 && checkNameLikeFilter(name)
                                 && checkNameNotLikeFilter(name)
-                                && (customAcceptList.isEmpty() || !customAcceptList.contains(false))
+                                && customAcceptThrough
                     }
 
                     //默认检查规则
                     return checkSuffixFilter(name)
                             && checkNameLikeFilter(name)
                             && checkNameNotLikeFilter(name)
-                            && (customAcceptList.isEmpty() || !customAcceptList.contains(false))
+                            && customAcceptThrough
                 }
             }
 
