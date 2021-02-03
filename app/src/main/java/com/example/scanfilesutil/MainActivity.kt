@@ -6,16 +6,13 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.scanfilesutil.utils.FileUtils
 import com.example.scanfilesutil.utils.ScanFileUtil
 import com.tbruyelle.rxpermissions2.RxPermissions
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FilenameFilter
 
 class MainActivity : AppCompatActivity() {
     /**
@@ -59,12 +56,11 @@ class MainActivity : AppCompatActivity() {
     private fun initOne() {
         scanFileOne = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
 
-        scanFileOne.apply {
-            setCallBackFilter(ScanFileUtil.FileFilterBuilder().apply {
-                onlyScanDir()
-            }.build())
+        val build = ScanFileUtil.FileFilterBuilder().apply {
+            onlyScanFile()
+        }.build()
 
-        }
+        scanFileOne.setCallBackFilter(build)
 
         scanFileOne.setScanFileListener(object : ScanFileUtil.ScanFileListener {
             var i = 0
@@ -96,7 +92,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     i++
                 }
-                Log.d("one Scan", "${file.absolutePath}")
+                Log.d("one Scan", "${file.path} name ${file.name}")
             }
 
         })
