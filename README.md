@@ -56,7 +56,7 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 
 ### function/function introduction
 
-`ScanFileUtil` function
+### `ScanFileUtil` function
 
 | APi                                                          | describe                                                     |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -69,7 +69,7 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 | `setScanningFilter(filter: FilenameFilter?)`                 | 扫描时过滤规则，不建议使用此方法，用`setCallBackFilter()`代替。<br />Filter rule during scanning, not recommended，<br />Replace with `setCallBackFilter()` |
 | `stop()`                                                     | 停止扫描，Stop scanning                                      |
 
-`ScanFileListener` function
+### `ScanFileListener` function
 
 | 接口方法/Interface function             | 描述/description                                             |
 | --------------------------------------- | ------------------------------------------------------------ |
@@ -89,7 +89,7 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 
 
 
-##### 可以一个或多个扫描任务一起工作/Can work with one or more scan tasks
+### 可以一个或多个扫描任务一起工作/Can work with one or more scan tasks
 
 ```kotlin
 val oneFileList = mutableListOf<File>()
