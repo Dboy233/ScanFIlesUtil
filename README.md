@@ -54,7 +54,7 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 }
 ```
 
-##### function/function introduction
+### function/function introduction
 
 `ScanFileUtil` function
 
@@ -79,7 +79,7 @@ scanFile.setScanFileListener(object : ScanFileUtil.ScanFileListener {
 
 
 
-`ScanTogetherManager` function
+### `ScanTogetherManager` function
 
 | 方法/function                                                | 描述/description                                      |
 | ------------------------------------------------------------ | ----------------------------------------------------- |
@@ -163,7 +163,7 @@ scanFileTwo.startAsyncScan()
 
 
 
-##### 文件扫描过滤Builder/ File scan filter builder
+### 文件扫描过滤Builder/ File scan filter builder
 
 ```kotlin
 //FileFilterBuilder
@@ -260,7 +260,7 @@ fun build(): FilenameFilter
 
 
 
-##### 如何使用FileFilterBuilder\How to use FileFilterBuilder
+### 如何使用FileFilterBuilder\How to use FileFilterBuilder
 
 ```kotlin
 val scanFile = ScanFileUtil(ScanFileUtil.externalStorageDirectory)
