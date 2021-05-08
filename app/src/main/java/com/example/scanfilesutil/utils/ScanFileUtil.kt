@@ -687,18 +687,15 @@ class ScanFileUtil {
          */
         fun build(): FilenameFilter {
             return object : FilenameFilter {
-                //自定义过滤规则是否通过 true通过 false未通过
-                var customAcceptThrough: Boolean = true
-                override fun accept(dir: File, name: String): Boolean {
 
-                    customAcceptThrough = true
+                override fun accept(dir: File, name: String): Boolean {
+                    //先检查用户自定义的过滤规则 优先级最高
                     if (customFilterList.isNotEmpty()) {
                         for (filenameFilter in customFilterList) {
                             val accept = filenameFilter.accept(dir, name)
                             if (!accept) {
                                 //只要有一个过滤规则不通过就停止循环
-                                customAcceptThrough = false
-                                break
+                                return false
                             }
                         }
                     }
@@ -715,7 +712,6 @@ class ScanFileUtil {
                         return dir.isDirectory
                                 && checkNameLikeFilter(name)
                                 && checkNameNotLikeFilter(name)
-                                && customAcceptThrough
                     }
 
                     //只扫描文件 同时应用文件扫描规则
@@ -724,14 +720,12 @@ class ScanFileUtil {
                                 && checkSuffixFilter(name)
                                 && checkNameLikeFilter(name)
                                 && checkNameNotLikeFilter(name)
-                                && customAcceptThrough
                     }
 
                     //默认检查规则
                     return checkSuffixFilter(name)
                             && checkNameLikeFilter(name)
                             && checkNameNotLikeFilter(name)
-                            && customAcceptThrough
                 }
             }
 
