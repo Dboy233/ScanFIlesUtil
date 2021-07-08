@@ -757,6 +757,7 @@ class ScanFileUtil {
          * 在主线程回调
          * Callback in main thread
          * 扫描完成回调 Scan completion callback
+         * 同时也是异常处理回调，取决于返回时间如果是负值的话
          * @param timeConsuming 耗时 时间为-1说明扫描目录不存在
          */
         fun scanComplete(timeConsuming: Long)
