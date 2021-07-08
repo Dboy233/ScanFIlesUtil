@@ -35,6 +35,16 @@ class ScanFileUtil {
     }
 
     /**
+     * 未知错误
+     */
+    private val ERROR_UNKNOW = -1L
+
+    /**
+     * 路径不存在
+     */
+    private val PATH_NOT_EXIST = -2L
+
+    /**
      * 是否停止扫描
      * Whether to stop scanning
      */
@@ -87,7 +97,6 @@ class ScanFileUtil {
      *
      */
     var enableCallComplete = false
-
 
     /**
      * @param rootPath 扫描的路径 Scanning path
@@ -144,6 +153,7 @@ class ScanFileUtil {
         //Check path availability
         val file = File(mRootPath)
         if (!file.exists()) {
+            mScanFileListener?.onError(PATH_NOT_EXIST, Throwable("文件路径不存在"))
             return
         }
         mJobFlowScan = flow<File> {
@@ -153,7 +163,7 @@ class ScanFileUtil {
             mScanFileListener?.onBegin()
             mScanTime = System.currentTimeMillis()
         }.catch {
-            mScanFileListener?.onError()
+            mScanFileListener?.onError(ERROR_UNKNOW, Throwable("我也不知道发生了什么"))
         }.flowOn(Dispatchers.IO)
         //在主线程回调
         GlobalScope.launch(Dispatchers.Main) {
@@ -610,6 +620,7 @@ class ScanFileUtil {
          * 在主线程回调
          * Callback in main thread
          * 扫描完成回调 Scan completion callback
+         * 同时也是异常结束回调
          * @param timeConsuming 耗时
          */
         fun onComplete(timeConsuming: Long)
@@ -617,7 +628,7 @@ class ScanFileUtil {
         /**
          * 当扫描报错
          */
-        fun onError()
+        fun onError(errorCode:Long,throws: Throwable)
 
         /**
          * 在子线程回调
@@ -639,9 +650,10 @@ class ScanFileUtil {
 
         }
 
-        override fun onError() {
+        override fun onError(errorCode: Long, throws: Throwable) {
 
         }
+
 
         override fun onFile(file: File) {
 

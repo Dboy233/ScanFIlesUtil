@@ -2,6 +2,7 @@ package com.example.scanfilesutil
 
 import android.Manifest
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.example.scanfilesutil.utils.ScanFileUtil
@@ -59,9 +60,10 @@ class MainActivity : AppCompatActivity() {
                 scan_info_tv.text = "complete time:$timeConsuming | file size = ${oneFileList.size}"
             }
 
-            override fun onError() {
-
+            override fun onError(errorCode: Long, throws: Throwable) {
+                Log.d("Dboy", "onError: $errorCode -- ${throws.message}")
             }
+
 
             override fun onFile(file: File) {
                 oneFileList.add(file)
@@ -135,6 +137,7 @@ class MainActivity : AppCompatActivity() {
      */
     fun stopScan(view: View?) {
         scanFileOne.stop()
+        scanFileTwo.stop()
     }
 
 
