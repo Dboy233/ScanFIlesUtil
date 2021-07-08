@@ -68,6 +68,12 @@ class ScanFileUtil {
     }
 
     /**
+     * 文件路径不存在
+     * file path does not exist
+     */
+    private val PATH_NOT_EXISTS = -1L
+
+    /**
      * 是否停止扫描
      * Whether to stop scanning
      */
@@ -184,6 +190,7 @@ class ScanFileUtil {
         //Check path availability
         val file = File(mRootPath)
         if (!file.exists()) {
+            mScanFileListener?.scanComplete(PATH_NOT_EXISTS)
             return
         }
         //如果协程是空的 或者已经结束过了，重新实例化协程
@@ -750,7 +757,7 @@ class ScanFileUtil {
          * 在主线程回调
          * Callback in main thread
          * 扫描完成回调 Scan completion callback
-         * @param timeConsuming 耗时
+         * @param timeConsuming 耗时 时间为-1说明扫描目录不存在
          */
         fun scanComplete(timeConsuming: Long)
 
