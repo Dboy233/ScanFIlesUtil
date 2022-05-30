@@ -116,6 +116,9 @@ class MainActivity : AppCompatActivity() {
                     //   Log.d("tow Scan",twoFileList.toString())
                     scan_two_info_tv.text =
                         " 扫描任务2完成 tow scan complete ;time:${timeConsuming} size${twoFileList.size}"
+//                    twoFileList.forEach {
+//                        Log.d("DJC", "scanComplete: ${it.name}")
+//                    }
                     // Toast.makeText(this, "two scan end 扫描完成", Toast.LENGTH_SHORT).show()
                 }
 
@@ -138,11 +141,10 @@ class MainActivity : AppCompatActivity() {
             })
 
         //设置过滤规则
-        scanFileTwo.setCallBackFilter(ScanFileUtil.FileFilterBuilder()
-            .apply {
-                scanDocumentFiles()
-            }
-            .build())
+        val filter = ScanFileUtil.FileFilterBuilder()
+            .onlyScanFile()
+            .build()
+        scanFileTwo.setCallBackFilter(filter)
     }
 
     /**

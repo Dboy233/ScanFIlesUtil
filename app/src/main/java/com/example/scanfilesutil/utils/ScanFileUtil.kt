@@ -225,7 +225,7 @@ class ScanFileUtil {
             //Check whether it is a file or a file, and call back directly to return true
             if (dirOrFile.isFile) {
                 if (filterFile(dirOrFile)) {
-                    mScanFileListener?.scanningCallBack(dirOrFile)
+                    internalCallFile(dirOrFile)
                 }
                 checkCoroutineSize()
                 return@launch
@@ -240,7 +240,7 @@ class ScanFileUtil {
                 //If it is a folder-callback, call yourself and then traverse the scan
                 if (it.isDirectory) {
                     if (filterFile(it)) {
-                        mScanFileListener?.scanningCallBack(it)
+                        internalCallFile(it)
                     }
                     //再次调用此方法
                     //Call this method again
@@ -249,13 +249,21 @@ class ScanFileUtil {
                     //是文件,回调,验证过滤规则
                     //Is a file, callback, verification filter rules
                     if (filterFile(it)) {
-                        mScanFileListener?.scanningCallBack(it)
+                        internalCallFile(it)
                     }
                 }
             }
             checkCoroutineSize()
             return@launch
         }
+    }
+
+    /**
+     * 线程同步执行回调。防止多线程导致的问题
+     */
+    @Synchronized
+    private fun internalCallFile(dirOrFile: File) {
+        mScanFileListener?.scanningCallBack(dirOrFile)
     }
 
     /**
@@ -501,32 +509,36 @@ class ScanFileUtil {
          * 添加自定义filter规则
          * Add custom filter rule
          */
-        fun addCustomFilter(filter: FilenameFilter) {
+        fun addCustomFilter(filter: FilenameFilter): FileFilterBuilder {
             customFilterList.add(filter)
+            return this
         }
 
         /**
          * 只扫描文件夹
          * Scan folders only
          */
-        fun onlyScanDir() {
+        fun onlyScanDir(): FileFilterBuilder {
             isOnlyDir = true
+            return this
         }
 
         /**
          * 只要扫描文件
          * Just scan the file
          */
-        fun onlyScanFile() {
+        fun onlyScanFile(): FileFilterBuilder {
             isOnlyFile = true
+            return this
         }
 
         /**
          * 扫描名字像它的文件或者文件夹
          * Scan names like its files or folders
          */
-        fun scanNameLikeIt(like: String) {
+        fun scanNameLikeIt(like: String): FileFilterBuilder {
             mNameLikeFilterSet.add(like.toLowerCase(Locale.getDefault()))
+            return this
         }
 
         /**
@@ -535,32 +547,36 @@ class ScanFileUtil {
          * Scan name is not like its file
          * That is, don't scan files with names like this
          */
-        fun scanNameNotLikeIt(like: String) {
+        fun scanNameNotLikeIt(like: String): FileFilterBuilder {
             mNameNotLikeFilterSet.add(like.toLowerCase(Locale.getDefault()))
+            return this
         }
 
         /**
          * 扫描TxT文件
          * Scan text files only
          */
-        fun scanTxTFiles() {
+        fun scanTxTFiles(): FileFilterBuilder {
             mFilseFilterSet.add("txt")
+            return this
         }
 
         /**
          * 不扫描隐藏文件
          * Don't scan hidden files
          */
-        fun notScanHiddenFiles() {
+        fun notScanHiddenFiles(): FileFilterBuilder {
             isScanHiddenFiles = false
+            return this
         }
 
         /**
          *  扫描apk文件
          * Scan APK files
          */
-        fun scanApkFiles() {
+        fun scanApkFiles(): FileFilterBuilder {
             mFilseFilterSet.add("apk")
+            return this
         }
 
 
@@ -568,62 +584,68 @@ class ScanFileUtil {
          * 扫描log文件 temp文件
          * Scan log file temp file
          */
-        fun scanLogFiles() {
+        fun scanLogFiles(): FileFilterBuilder {
             mFilseFilterSet.add("log")
             mFilseFilterSet.add("temp")
+            return this
         }
 
         /**
          * 扫描文档类型文件
          */
-        fun scanDocumentFiles() {
+        fun scanDocumentFiles(): FileFilterBuilder {
             mFilseFilterSet.add("txt")
             mFilseFilterSet.add("pdf")
             mFilseFilterSet.add("doc")
             mFilseFilterSet.add("docx")
             mFilseFilterSet.add("xls")
             mFilseFilterSet.add("xlsx")
+            return this
         }
 
         /**
          * 扫描图片类型文件
          *Scan picture type file
          */
-        fun scanPictureFiles() {
+        fun scanPictureFiles(): FileFilterBuilder {
             mFilseFilterSet.add("jpg")
             mFilseFilterSet.add("jpeg")
             mFilseFilterSet.add("png")
             mFilseFilterSet.add("bmp")
             mFilseFilterSet.add("gif")
+            return this
         }
 
         /**
          * 扫描多媒体文件类型
          *Scan multimedia file type
          */
-        fun scanVideoFiles() {
+        fun scanVideoFiles(): FileFilterBuilder {
             mFilseFilterSet.add("mp4")
             mFilseFilterSet.add("avi")
             mFilseFilterSet.add("wmv")
             mFilseFilterSet.add("flv")
+            return this
         }
 
         /**
          * 扫描音频文件类型
          * Scan audio file type
          */
-        fun scanMusicFiles() {
+        fun scanMusicFiles(): FileFilterBuilder {
             mFilseFilterSet.add("mp3")
             mFilseFilterSet.add("ogg")
+            return this
         }
 
         /**
          * 扫描压缩包文件类型
          */
-        fun scanZipFiles() {
+        fun scanZipFiles(): FileFilterBuilder {
             mFilseFilterSet.add("zip")
             mFilseFilterSet.add("rar")
             mFilseFilterSet.add("7z")
+            return this
         }
 
         /**
