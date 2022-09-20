@@ -1,4 +1,4 @@
-# ScanFileUtil
+# ScanFileUtil 低版本Android 暴力扫描文件夹
 
 ### 分支 [flow-scan](https://github.com/Dboy233/ScanFIlesUtil/tree/flow-scan) 使用协程Flow实现扫描任务，如需请切换分支至 [flow-scan](https://github.com/Dboy233/ScanFIlesUtil/tree/flow-scan); 扫描速度不如主分支代码。
 
