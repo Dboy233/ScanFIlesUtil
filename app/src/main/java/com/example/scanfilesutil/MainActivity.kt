@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity() {
 
 
             override fun onFile(file: File) {
+                Log.d("DJC", "onFile: "+Thread.currentThread().name)
                 oneFileList.add(file)
                 if (i <= 50) {
                     i++
@@ -98,6 +99,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onFile(file: File) {
+                Log.d("DJC", "onFile: "+Thread.currentThread().name)
                 twoFileList.add(file)
                 if (i <= 50) {
                     i++
@@ -113,7 +115,9 @@ class MainActivity : AppCompatActivity() {
      * 实例1 调用扫描模板1 使用startAsyncScan(callBack)回调
      */
     fun startOneScan(view: View) {
+        Log.d("DJC", "startOneScan: 1")
         scanFileOne.startScan()
+        Log.d("DJC", "startOneScan: 2")
     }
 
     /**

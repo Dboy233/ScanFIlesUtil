@@ -165,8 +165,8 @@ class ScanFileUtil {
         }.catch {
             mScanFileListener?.onError(ERROR_UNKNOW, Throwable("我也不知道发生了什么"))
         }.flowOn(Dispatchers.IO)
-        //在主线程回调
-        GlobalScope.launch(Dispatchers.Main) {
+        //在子线程回调
+        GlobalScope.launch(Dispatchers.IO) {
             mJobFlowScan?.collect {
                 mScanFileListener?.onFile(it)
             }
