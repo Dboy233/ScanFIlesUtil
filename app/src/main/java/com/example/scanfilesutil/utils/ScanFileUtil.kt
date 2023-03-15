@@ -1,10 +1,8 @@
 package com.example.scanfilesutil.utils
 
 import android.os.Environment
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FilenameFilter
 import java.util.*
@@ -89,7 +87,7 @@ class ScanFileUtil {
     /**
      * flow 扫描任务
      */
-    private var mJobFlowScan: Flow<File>? = null
+    private var mJobScan: Job? = null
 
     /**
      * 当手动调用 stop() 函数的时候是否 在之后调用onComplete()函数
@@ -126,7 +124,7 @@ class ScanFileUtil {
      */
     fun stop() {
         isStop = true
-        mJobFlowScan?.cancellable()
+        mJobScan?.cancelChildren()
     }
 
     fun enableStopCallComplete(enable: Boolean) {
@@ -156,21 +154,22 @@ class ScanFileUtil {
             mScanFileListener?.onError(PATH_NOT_EXIST, Throwable("文件路径不存在"))
             return
         }
-        mJobFlowScan = flow<File> {
-            recursionScan(file, this)
-            onComplete()
-        }.onStart {
-            mScanFileListener?.onBegin()
-            mScanTime = System.currentTimeMillis()
-        }.catch {
-            mScanFileListener?.onError(ERROR_UNKNOW, Throwable("我也不知道发生了什么"))
-        }.flowOn(Dispatchers.IO)
-        //在子线程回调
-        GlobalScope.launch(Dispatchers.IO) {
-            mJobFlowScan?.collect {
-                mScanFileListener?.onFile(it)
+        mJobScan = GlobalScope.launch(Dispatchers.IO) {
+            flow<File> {
+                recursionScan(file, this)
+                onComplete()
+            }.onStart {
+                mScanFileListener?.onBegin()
+                mScanTime = System.currentTimeMillis()
+            }.catch {
+                mScanFileListener?.onError(ERROR_UNKNOW, Throwable("我也不知道发生了什么"))
+            }.flowOn(Dispatchers.IO).collect {
+                withContext(Dispatchers.Main){
+                    mScanFileListener?.onFile(it)
+                }
             }
         }
+
     }
 
     /**
@@ -628,12 +627,12 @@ class ScanFileUtil {
         /**
          * 当扫描报错
          */
-        fun onError(errorCode:Long,throws: Throwable)
+        fun onError(errorCode: Long, throws: Throwable)
 
         /**
-         * 在子线程回调
+         * 在主线程回调
          * 扫描到文件时回调，每扫描到一个文件触发一次
-         * Callback in child thread
+         * Callback in main thread
          * Callback when a file is scanned, triggered every time a file is scanned
          * @param file 扫描的文件
          */
